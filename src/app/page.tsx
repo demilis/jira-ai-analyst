@@ -4,14 +4,18 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { generateJiraReport, type JiraReportOutput } from "@/ai/flows/jira-report-flow";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, FileUp, Clipboard, Check } from "lucide-react";
+import { Loader2, FileUp, Clipboard, Check, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
+  const [textInput, setTextInput] = useState("");
+  const [activeTab, setActiveTab] = useState("file");
   const [report, setReport] = useState<JiraReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -23,6 +27,7 @@ export default function Home() {
     if (selectedFile) {
       if (selectedFile.type.includes("sheet") || selectedFile.name.endsWith(".xlsx") || selectedFile.name.endsWith(".xls")) {
         setFile(selectedFile);
+        setTextInput(""); // Clear text input when a file is selected
         setReport(null);
       } else {
         toast({
@@ -35,68 +40,66 @@ export default function Home() {
   };
 
   const handleGenerateReport = async () => {
-    if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please select an Excel file to generate a report.",
-      });
-      return;
-    }
-
     setIsLoading(true);
     setReport(null);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      let stringifiedData: string;
 
-          if (json_data.length === 0) {
-            throw new Error("Excel sheet is empty or invalid.");
-          }
-
-          const stringifiedData = JSON.stringify(json_data);
-          
-          const generatedReport = await generateJiraReport({ issuesData: stringifiedData });
-          setReport(generatedReport);
-
-        } catch (error) {
-           console.error("Error processing file:", error);
-           toast({
-             variant: "destructive",
-             title: "Oh no! Something went wrong.",
-             description: error instanceof Error ? error.message : "Failed to process the Excel file.",
-           });
-        } finally {
-           setIsLoading(false);
+      if (activeTab === 'file') {
+        if (!file) {
+          toast({ variant: "destructive", title: "No file selected", description: "Please select an Excel file to generate a report." });
+          setIsLoading(false);
+          return;
         }
-      };
-      reader.onerror = (error) => {
-        console.error("FileReader error:", error);
-        toast({
-          variant: "destructive",
-          title: "File Read Error",
-          description: "There was a problem reading your file.",
+        stringifiedData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = new Uint8Array(e.target?.result as ArrayBuffer);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const sheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[sheetName];
+              const json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+              if (!json_data || json_data.length === 0) {
+                return reject(new Error("Excel sheet is empty or invalid."));
+              }
+              resolve(JSON.stringify(json_data));
+            } catch (err) {
+              reject(err);
+            }
+          };
+          reader.onerror = () => reject(new Error("There was a problem reading your file."));
+          reader.readAsArrayBuffer(file);
         });
-        setIsLoading(false);
-      };
-      reader.readAsArrayBuffer(file);
+      } else { // text input
+        if (!textInput.trim()) {
+          toast({ variant: "destructive", title: "No text entered", description: "Please paste your data into the text area." });
+          setIsLoading(false);
+          return;
+        }
+        // Assume the user pastes tab-separated values, like from Excel
+        const rows = textInput.trim().split('\n');
+        const dataArray = rows.map(row => row.split('\t'));
+        stringifiedData = JSON.stringify(dataArray);
+      }
+      
+      const generatedReport = await generateJiraReport({ issuesData: stringifiedData });
+      setReport(generatedReport);
+
     } catch (error) {
-       console.error("Error generating report:", error);
-       toast({
-         variant: "destructive",
-         title: "Oh no! Something went wrong.",
-         description: "There was a problem generating the report.",
-       });
-       setIsLoading(false);
+      console.error("Error generating report:", error);
+      toast({
+        variant: "destructive",
+        title: "Oh no! Something went wrong.",
+        description: error instanceof Error ? error.message : "There was a problem generating the report.",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
+
 
   const generatePlainTextReport = () => {
     if (!report) return "";
@@ -132,31 +135,50 @@ export default function Home() {
       <Card className="w-full max-w-3xl">
         <CardHeader>
           <CardTitle className="text-2xl">Jira 이슈 리포트 생성기</CardTitle>
-          <CardDescription>Jira에서 내보낸 Excel 파일을 업로드하여 AI 요약 리포트를 받아보세요.</CardDescription>
+          <CardDescription>Jira에서 내보낸 Excel 파일을 업로드하거나 내용을 붙여넣어 AI 요약 리포트를 받아보세요.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div
-            className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <FileUp className="w-12 h-12 text-muted-foreground" />
-            <p className="mt-4 text-muted-foreground">
-              {file ? file.name : "클릭하거나 파일을 여기로 드래그하세요"}
-            </p>
-            <p className="text-xs text-muted-foreground/80">(.xlsx, .xls)</p>
-          </div>
-          <Input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileChange}
-            accept=".xlsx, .xls, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          />
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="file"><FileUp className="mr-2 h-4 w-4"/>파일 업로드</TabsTrigger>
+              <TabsTrigger value="text"><FileText className="mr-2 h-4 w-4"/>텍스트 입력</TabsTrigger>
+            </TabsList>
+            <TabsContent value="file" className="mt-4">
+                <div
+                    className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <FileUp className="w-12 h-12 text-muted-foreground" />
+                    <p className="mt-4 text-muted-foreground">
+                    {file ? file.name : "클릭하거나 파일을 여기로 드래그하세요"}
+                    </p>
+                    <p className="text-xs text-muted-foreground/80">(.xlsx, .xls)</p>
+                </div>
+                <Input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    accept=".xlsx, .xls, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                />
+            </TabsContent>
+            <TabsContent value="text" className="mt-4">
+                <Textarea
+                    placeholder="여기에 Excel/시트에서 복사한 이슈 데이터를 붙여넣으세요."
+                    className="h-40"
+                    value={textInput}
+                    onChange={(e) => {
+                        setTextInput(e.target.value);
+                        setFile(null); // Clear file input when text is entered
+                    }}
+                />
+            </TabsContent>
+          </Tabs>
         </CardContent>
         <CardFooter>
           <Button
             onClick={handleGenerateReport}
-            disabled={!file || isLoading}
+            disabled={isLoading || (activeTab === 'file' && !file) || (activeTab === 'text' && !textInput.trim())}
             className="w-full"
           >
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
