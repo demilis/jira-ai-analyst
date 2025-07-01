@@ -39,3 +39,27 @@
 - **UI:** ShadCN, Tailwind CSS
 - **AI:** Genkit, Google Gemini
 - **라이브러리:** `xlsx` (Excel 파싱)
+
+## 배포 가이드 (Firebase App Hosting)
+
+이 애플리케이션은 Firebase App Hosting을 사용하여 쉽게 웹에 배포할 수 있습니다.
+
+### 사전 준비
+
+1.  **Firebase 프로젝트 생성:** 아직 없다면 [Firebase 콘솔](https://console.firebase.google.com/)에서 새 프로젝트를 생성하세요.
+2.  **Google AI API 키 발급:** [Google AI Studio](https://aistudio.google.com/app/apikey?hl=ko)에서 API 키를 발급받으세요.
+
+### 배포 절차
+
+1.  **API 키를 Secret으로 등록:**
+    *   **가장 중요한 단계입니다.** 발급받은 Google AI API 키는 코드에 직접 넣으면 안 됩니다. Firebase App Hosting의 Secret Manager에 안전하게 저장해야 합니다.
+    *   Firebase 콘솔에서 App Hosting 대시보드로 이동한 후, '설정' 탭에서 `GOOGLE_API_KEY`라는 이름으로 당신의 API 키 값을 Secret으로 추가하세요.
+
+2.  **GitHub 리포지토리 연결:**
+    *   Firebase App Hosting 대시보드에서 앱의 GitHub 리포지토리를 연결합니다.
+    *   배포할 브랜치(예: `main` 또는 `master`)를 선택합니다.
+
+3.  **자동 배포:**
+    *   리포지토리가 연결되면, 해당 브랜치에 코드를 푸시(push)할 때마다 Firebase가 자동으로 앱을 빌드하고 새로운 버전을 배포합니다.
+
+이제 당신의 Jira AI Analyst가 전 세계 어디서든 접속할 수 있는 웹 앱으로 탄생했습니다!
