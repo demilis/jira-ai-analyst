@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef } from "react";
@@ -10,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { generateJiraReport, type JiraReportOutput } from "@/ai/flows/jira-report-flow";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle, ChevronsUpDown, User, Key } from "lucide-react";
+import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle, ChevronsUpDown, User, Key, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import * as XLSX from "xlsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -249,7 +250,7 @@ export default function Home() {
                     accept=".xlsx, .xls, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 />
             </TabsContent>
-            <TabsContent value="text" className="mt-4">
+            <TabsContent value="text" className="mt-4 space-y-2">
                 <Textarea
                     placeholder="여기에 Excel/시트에서 복사한 이슈 데이터를 붙여넣으세요."
                     className="h-40"
@@ -261,6 +262,18 @@ export default function Home() {
                         setJiraPassword("");
                     }}
                 />
+                {textInput && (
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setTextInput('')}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      내용 지우기
+                    </Button>
+                  </div>
+                )}
             </TabsContent>
             <TabsContent value="system" className="mt-4 space-y-4">
                 <Alert>
@@ -447,3 +460,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
