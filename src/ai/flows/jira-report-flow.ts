@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that analyzes Jira issues from an Excel export and generates a summary report.
@@ -19,7 +20,8 @@ const JiraReportInputSchema = z.object({
 });
 export type JiraReportInput = z.infer<typeof JiraReportInputSchema>;
 
-const IssueBreakdownItemSchema = z.object({
+// Schema for the final, cleaned breakdown item. All essential fields are required.
+const FinalIssueBreakdownItemSchema = z.object({
     issueKey: z.string(),
     summary: z.string(),
     status: z.string(),
@@ -27,6 +29,12 @@ const IssueBreakdownItemSchema = z.object({
     recommendation: z.string(),
     createdDate: z.string().optional(),
     resolvedDate: z.string().optional(),
+});
+
+// Schema for the raw AI output, allowing some fields to be optional to prevent validation errors.
+const RawIssueBreakdownItemSchema = FinalIssueBreakdownItemSchema.deepPartial().extend({
+    issueKey: z.string().optional(), // issueKey is critical but we handle its absence in the filter.
+    summary: z.string().optional(),
 });
 
 const StatusDistributionItemSchema = z.object({
@@ -38,13 +46,13 @@ const StatusDistributionItemSchema = z.object({
 const JiraReportOutputSchema = z.object({
   summary: z.string().describe("A high-level summary of all the issues provided. It should mention the total number of issues, how many are open, in progress, and done. Mention any noticeable trends or bottlenecks."),
   priorityActions: z.array(z.string()).describe("A bulleted list of the most critical actions to take, based on issue priority, status, and content. Max 3-5 items."),
-  issueBreakdown: z.array(IssueBreakdownItemSchema).describe("A detailed breakdown of each individual issue."),
+  issueBreakdown: z.array(FinalIssueBreakdownItemSchema).describe("A detailed breakdown of each individual issue."),
   statusDistribution: z.array(StatusDistributionItemSchema).describe("Data for a pie chart showing the distribution of issues by status. The 'fill' color should be a visually distinct hex color for each status."),
 });
 export type JiraReportOutput = z.infer<typeof JiraReportOutputSchema>;
 
 const IssueBreakdownOnlySchema = z.object({
-    issueBreakdown: z.array(IssueBreakdownItemSchema),
+    issueBreakdown: z.array(RawIssueBreakdownItemSchema),
 });
 
 const SummarizeInputSchema = z.object({
@@ -74,6 +82,7 @@ export async function generateJiraReport(input: JiraReportInput): Promise<JiraRe
   const createBreakdownPrompt = ai.definePrompt({
     name: "createBreakdownPrompt",
     input: { schema: JiraReportInputSchema },
+    output: { schema: IssueBreakdownOnlySchema }, // Use the lenient schema for raw output
     prompt: `You are a machine that converts raw Jira data into a JSON object.
 Your ONLY output should be a valid JSON object with a single "issueBreakdown" key.
 
@@ -139,42 +148,29 @@ Your entire response MUST be a single, valid JSON object with THREE keys: "statu
 Now, generate the JSON object based on the provided Issue Breakdown Data, strictly following all analysis rules. The text for summary and priorityActions must be in KOREAN.`,
   });
 
-  // Step 1: Generate the issue breakdown. The prompt returns raw text now.
-  const { text } = await createBreakdownPrompt(input);
-  
-  let breakdownOutput: z.infer<typeof IssueBreakdownOnlySchema>;
-
-  try {
-      // AI can return conversational text or markdown. Find the JSON block.
-      const rawText = text();
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-
-      if (!jsonMatch) {
-          console.error('No valid JSON object found in AI response:', rawText);
-          throw new Error('AI가 분석 결과를 JSON 형식으로 만드는 데 실패했습니다. 응답에 유효한 JSON이 없습니다.');
-      }
-
-      breakdownOutput = JSON.parse(jsonMatch[0]);
-  } catch (e) {
-      console.error('Failed to parse JSON from AI for breakdown:', e);
-      throw new Error('AI가 분석 결과를 JSON 형식으로 만드는 데 실패했습니다.');
-  }
-
+  // Step 1: Generate the issue breakdown with a lenient schema.
+  const { output: breakdownOutput } = await createBreakdownPrompt(input);
   if (!breakdownOutput || !Array.isArray(breakdownOutput.issueBreakdown)) {
       throw new Error('AI가 이슈 세부 항목을 생성하는 데 실패했습니다.');
   }
 
-  // Server-side filtering to guarantee data integrity against AI hallucinations or partial data.
+  // Step 2: Server-side filtering to guarantee data integrity.
   // This is the critical step to prevent errors from incomplete AI output.
   const filteredBreakdown = breakdownOutput.issueBreakdown.filter(
-      (issue) => issue && issue.issueKey && issue.issueKey.trim() !== '' && issue.summary && issue.summary.trim() !== ''
+      (issue): issue is z.infer<typeof FinalIssueBreakdownItemSchema> =>
+          !!issue &&
+          typeof issue.issueKey === 'string' && issue.issueKey.trim() !== '' &&
+          typeof issue.summary === 'string' && issue.summary.trim() !== '' &&
+          typeof issue.status === 'string' &&
+          typeof issue.assignee === 'string' &&
+          typeof issue.recommendation === 'string'
   );
   
   if (filteredBreakdown.length === 0) {
-       throw new Error('AI가 유효한 이슈를 분석하지 못했습니다. 데이터 형식을 확인해주세요.');
+       throw new Error('AI가 유효한 이슈를 분석하지 못했습니다. 데이터에 이슈 키와 요약 정보가 포함되어 있는지 확인해주세요.');
   }
 
-  // Step 2: Generate the summary and actions from the filtered breakdown
+  // Step 3: Generate the summary and actions from the filtered breakdown
   const { output: summaryOutput } = await summarizeBreakdownPrompt({
       breakdownString: JSON.stringify(filteredBreakdown),
       analysisPoint: input.analysisPoint,
@@ -184,7 +180,7 @@ Now, generate the JSON object based on the provided Issue Breakdown Data, strict
       throw new Error('AI가 요약 및 조치 항목을 생성하는 데 실패했습니다.');
   }
 
-  // Step 3: Combine the results
+  // Step 4: Combine the results
   return {
       summary: summaryOutput.summary,
       priorityActions: summaryOutput.priorityActions,
