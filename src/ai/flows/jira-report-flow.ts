@@ -32,21 +32,45 @@ const prompt = ai.definePrompt({
     name: "jiraReportPrompt",
     input: { schema: JiraReportInputSchema },
     output: { schema: JiraReportOutputSchema },
-    prompt: `You are a JSON generation machine. Your sole purpose is to analyze the provided Jira issue data and output a valid JSON object. Nothing else.
+    prompt: `You are an expert at analyzing Jira issues and generating structured JSON reports. Your task is to process the raw Jira data provided below and create a complete JSON report with three sections: 'summary', 'priorityActions', and 'issueBreakdown'.
 
-**MANDATORY OUTPUT FORMAT**:
-Your entire response MUST be a single, valid JSON object. Do not output any text, markdown, or explanations before or after the JSON.
-The JSON object must contain these exact three top-level keys: \`summary\`, \`priorityActions\`, \`issueBreakdown\`. All keys are required.
-
-**DATA ANALYSIS INSTRUCTIONS**:
-Use the following Jira data to populate the JSON object:
+**Jira Data:**
 {{{issuesData}}}
 
-1.  **\`summary\` (string)**: Analyze all issues. Provide a high-level summary including total issue count, a breakdown of statuses (Resolved, Closed, In Progress, etc.), and any notable trends.
-2.  **\`priorityActions\` (array of strings)**: Identify 3-5 of the most critical action items based on the issues.
-3.  **\`issueBreakdown\` (array of objects)**: For each issue, create an object with \`issueKey\`, \`summary\`, \`status\`, \`assignee\`, and a brief \`recommendation\`. If an assignee is missing, use "Unassigned".
+**Instructions:**
+Based on the Jira Data above, generate a single, valid JSON object that strictly follows this structure. DO NOT output any text before or after the JSON.
 
-Now, generate the complete and valid JSON object as instructed.`,
+1.  **\`summary\` (string):** Write a high-level summary. Count the total issues and break them down by status. Mention any trends.
+2.  **\`priorityActions\` (array of strings):** List the top 3-5 most critical actions to take.
+3.  **\`issueBreakdown\` (array of objects):** For EVERY issue in the data, create an object containing:
+    *   \`issueKey\`: The issue ID.
+    *   \`summary\`: A short summary of the issue.
+    *   \`status\`: The current status.
+    *   \`assignee\`: The assigned person (use "Unassigned" if empty).
+    *   \`recommendation\`: A brief, actionable recommendation.
+
+Your entire response MUST be a single JSON object.
+
+**Example of the required output format:**
+{
+  "summary": "Total of 55 issues analyzed. 30 are Closed, 20 are Resolved, 5 are In Progress. A bottleneck seems to be in the 'In Progress' state for over 2 weeks.",
+  "priorityActions": [
+    "Address the blocker in HMCCCIC-12345 immediately.",
+    "Follow up with 'John Doe' on overdue tasks.",
+    "Review all 'In Progress' issues to identify a common cause for delay."
+  ],
+  "issueBreakdown": [
+    {
+      "issueKey": "HMCCCIC-109124",
+      "summary": "Issue with the main dashboard loading slowly.",
+      "status": "In Progress",
+      "assignee": "Jane Doe",
+      "recommendation": "Investigate the database query performance."
+    }
+  ]
+}
+
+Now, generate the JSON object based on the provided Jira Data.`,
 });
 
 const jiraReportFlow = ai.defineFlow(
