@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,11 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { generateJiraReport, type JiraReportOutput } from "@/ai/flows/jira-report-flow";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle, ChevronsUpDown, User, Key, Trash2 } from "lucide-react";
+import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle, ChevronsUpDown, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import * as XLSX from "xlsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import {
   ChartContainer,
@@ -33,7 +33,6 @@ export default function Home() {
   const [jiraId, setJiraId] = useState("");
   const [jiraPassword, setJiraPassword] = useState("");
   const [analysisPoint, setAnalysisPoint] = useState("");
-  const [apiKey, setApiKey] = useState('');
   const [activeTab, setActiveTab] = useState("file");
   const [report, setReport] = useState<JiraReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,19 +40,6 @@ export default function Home() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
-
-  useEffect(() => {
-    const storedApiKey = localStorage.getItem('userApiKey');
-    if (storedApiKey) {
-        setApiKey(storedApiKey);
-    }
-  }, []);
-
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newKey = e.target.value;
-    setApiKey(newKey);
-    localStorage.setItem('userApiKey', newKey);
-  };
 
   const analysisExamples = [
     { value: "5월에 해결된 이슈", label: "5월에 해결된 이슈" },
@@ -159,7 +145,7 @@ export default function Home() {
         stringifiedData = JSON.stringify(final_data);
       }
       
-      const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint, apiKey });
+      const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint });
       setReport(generatedReport);
 
     } catch (error) {
@@ -368,33 +354,6 @@ export default function Home() {
             </Popover>
             <p className="text-xs text-muted-foreground">
               분석 리포트의 요약 및 조치 항목에 적용할 특정 관점을 입력하세요.
-            </p>
-          </div>
-
-          <div className="mt-6 space-y-2">
-            <Label htmlFor="api-key" className="flex items-center">
-              <Key className="mr-2 h-4 w-4" />
-              내 Google AI API Key 사용하기 (선택 사항)
-            </Label>
-            <Input
-              id="api-key"
-              type="password"
-              placeholder="발급받은 Google AI 키를 여기에 붙여넣으세요"
-              value={apiKey}
-              onChange={handleApiKeyChange}
-            />
-            <p className="text-xs text-muted-foreground">
-              API 키는 Google의 AI 서비스를 이용하기 위한 일종의 '비밀번호'입니다.
-              자신만의 키를 사용하면 더 안정적으로 서비스를 이용할 수 있습니다. 
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline text-primary hover:text-primary/80"
-              >
-                {' '}여기에서 무료로 키를 발급
-              </a>
-              받아 위 칸에 붙여넣어 보세요. 입력하지 않아도 앱의 기본 키로 분석은 가능하지만, 사용량이 많을 경우 제한될 수 있습니다. 키는 브라우저에만 안전하게 저장됩니다.
             </p>
           </div>
 

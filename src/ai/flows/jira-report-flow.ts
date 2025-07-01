@@ -8,15 +8,12 @@
  * - JiraReportOutput - The return type for the generateJiraReport function.
  */
 
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
-import { ai as defaultAi } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const JiraReportInputSchema = z.object({
   issuesData: z.string().describe("A stringified JSON array of arrays representing the Jira issues from an Excel sheet. The first inner array is the header row."),
   analysisPoint: z.string().optional().describe("An optional user-provided focus point for the analysis, e.g., 'Reporter', 'Priority', or specific keywords."),
-  apiKey: z.string().optional().describe("An optional user-provided Google AI API key."),
 });
 export type JiraReportInput = z.infer<typeof JiraReportInputSchema>;
 
@@ -67,23 +64,11 @@ const SummaryAndActionsSchema = z.object({
     statusDistribution: z.array(StatusDistributionItemSchema).describe("Data for a pie chart showing the distribution of issues by status. The 'fill' color should be a visually distinct hex color for each status."),
 });
 
-
-export async function generateJiraReport(input: JiraReportInput): Promise<JiraReportOutput> {
-  let ai = defaultAi;
-  // If user provides a key, create a new Genkit instance for this specific call.
-  if (input.apiKey && input.apiKey.trim() !== '') {
-    ai = genkit({
-      plugins: [googleAI({ apiKey: input.apiKey })],
-      model: 'googleai/gemini-1.5-flash-latest',
-    });
-  }
-
-  // Define prompts using the selected `ai` instance.
-  const createBreakdownPrompt = ai.definePrompt({
-    name: "createBreakdownPrompt",
-    input: { schema: JiraReportInputSchema },
-    output: { schema: IssueBreakdownOnlySchema }, // Use the lenient schema for raw output
-    prompt: `You are a machine that converts raw Jira data into a JSON object.
+const createBreakdownPrompt = ai.definePrompt({
+  name: "createBreakdownPrompt",
+  input: { schema: z.object({ issuesData: z.string() }) },
+  output: { schema: IssueBreakdownOnlySchema }, // Use the lenient schema for raw output
+  prompt: `You are a machine that converts raw Jira data into a JSON object.
 Your ONLY output should be a valid JSON object with a single "issueBreakdown" key.
 
 **CRITICAL RULES to prevent errors:**
@@ -100,13 +85,13 @@ Your ONLY output should be a valid JSON object with a single "issueBreakdown" ke
 {{{issuesData}}}
 
 Now, generate the JSON object based on the provided Jira Data, strictly following all rules.`,
-  });
+});
 
-  const summarizeBreakdownPrompt = ai.definePrompt({
-    name: "summarizeBreakdownPrompt",
-    input: { schema: SummarizeInputSchema },
-    output: { schema: SummaryAndActionsSchema },
-    prompt: `You are a project management expert who writes reports in KOREAN.
+const summarizeBreakdownPrompt = ai.definePrompt({
+  name: "summarizeBreakdownPrompt",
+  input: { schema: SummarizeInputSchema },
+  output: { schema: SummaryAndActionsSchema },
+  prompt: `You are a project management expert who writes reports in KOREAN.
 Based on the following JSON data of Jira issues, generate a high-level summary, a list of priority actions, and data for a status chart.
 Today's date is {{{currentDate}}}.
 
@@ -146,10 +131,12 @@ Your entire response MUST be a single, valid JSON object with THREE keys: "statu
     -   {{#if analysisPoint}}These actions should be heavily influenced by the analysis point '{{{analysisPoint}}}'.{{/if}}
 
 Now, generate the JSON object based on the provided Issue Breakdown Data, strictly following all analysis rules. The text for summary and priorityActions must be in KOREAN.`,
-  });
+});
 
+
+export async function generateJiraReport(input: JiraReportInput): Promise<JiraReportOutput> {
   // Step 1: Generate the issue breakdown with a lenient schema.
-  const { output: breakdownOutput } = await createBreakdownPrompt(input);
+  const { output: breakdownOutput } = await createBreakdownPrompt({ issuesData: input.issuesData });
   if (!breakdownOutput || !Array.isArray(breakdownOutput.issueBreakdown)) {
       throw new Error('AI가 이슈 세부 항목을 생성하는 데 실패했습니다.');
   }
