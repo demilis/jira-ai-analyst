@@ -32,20 +32,27 @@ const prompt = ai.definePrompt({
     name: "jiraReportPrompt",
     input: { schema: JiraReportInputSchema },
     output: { schema: JiraReportOutputSchema },
-    prompt: `You are a highly efficient project manager. Your task is to analyze a list of Jira issues and generate a summary report. The issues are provided as a stringified JSON array of arrays, where the first inner array is the header row.
+    prompt: `You are a Jira analysis expert. Your primary and only task is to create a JSON report based on the provided Jira issue data.
 
-Here is the data:
+**CRITICAL INSTRUCTION**: Your entire response MUST be a single, valid JSON object. Do not add any other text, explanation, or formatting. The JSON object must strictly adhere to this structure:
+{
+  "summary": "string",
+  "priorityActions": ["string", "string", ...],
+  "issueBreakdown": [ { "issueKey": "string", "summary": "string", "status": "string", "assignee": "string", "recommendation": "string" }, ... ]
+}
+
+All three top-level keys ('summary', 'priorityActions', 'issueBreakdown') are mandatory and MUST be present in your response.
+
+Here is the Jira issue data, provided as a stringified JSON array of arrays:
 {{{issuesData}}}
 
-After analyzing all the issues, generate a clear, concise, and actionable summary report.
+Now, analyze the data and generate the JSON object with the following content:
 
-Your response MUST be a JSON object that strictly adheres to the defined output schema.
-The JSON object MUST contain all three of these top-level keys: 'summary', 'priorityActions', and 'issueBreakdown'. Do not omit any keys.
+1.  **For the \`summary\` key**: Write a high-level summary. Include the total number of issues, a count by status (e.g., Resolved, Closed, In Progress), and identify any trends or bottlenecks.
+2.  **For the \`priorityActions\` key**: Create a list of 3-5 critical, actionable items based on the issues.
+3.  **For the \`issueBreakdown\` key**: Fill the array with details for each individual issue. For the 'assignee' field, if it is blank in the source data, use the string 'Unassigned'.
 
-1.  **summary**: Provide a high-level summary of the overall situation. Mention total issues, statuses (e.g., open, in progress, done), and any noticeable trends or bottlenecks.
-2.  **priorityActions**: Provide a short, prioritized list of 3-5 critical actions to take based on issue priority, status, and content.
-3.  **issueBreakdown**: Provide a detailed breakdown of each individual issue, including its key, summary, status, assignee, and an AI-powered recommendation.
-`,
+Construct the final JSON object. Ensure it is complete, valid, and contains all three mandatory keys.`,
 });
 
 const jiraReportFlow = ai.defineFlow(
