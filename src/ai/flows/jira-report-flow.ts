@@ -144,9 +144,18 @@ const jiraReportFlow = ai.defineFlow(
             throw new Error('AI가 이슈 세부 항목을 생성하는 데 실패했습니다.');
         }
 
-        // Step 2: Generate the summary and actions from the breakdown
+        // Server-side filtering to guarantee data integrity against AI hallucinations or partial data.
+        const filteredBreakdown = breakdownOutput.issueBreakdown.filter(
+            (issue) => issue.issueKey && issue.issueKey.trim() !== '' && issue.summary && issue.summary.trim() !== ''
+        );
+        
+        if (filteredBreakdown.length === 0) {
+             throw new Error('AI가 유효한 이슈를 분석하지 못했습니다. 데이터 형식을 확인해주세요.');
+        }
+
+        // Step 2: Generate the summary and actions from the filtered breakdown
         const { output: summaryOutput } = await summarizeBreakdownPrompt({
-            breakdownString: JSON.stringify(breakdownOutput.issueBreakdown),
+            breakdownString: JSON.stringify(filteredBreakdown),
             analysisPoint: input.analysisPoint,
             currentDate: new Date().toLocaleDateString('ko-KR'),
         });
@@ -158,7 +167,7 @@ const jiraReportFlow = ai.defineFlow(
         return {
             summary: summaryOutput.summary,
             priorityActions: summaryOutput.priorityActions,
-            issueBreakdown: breakdownOutput.issueBreakdown,
+            issueBreakdown: filteredBreakdown,
             statusDistribution: summaryOutput.statusDistribution,
         };
     }
