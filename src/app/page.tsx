@@ -155,8 +155,8 @@ export default function Home() {
     <div className="container mx-auto p-4 md:p-8 flex flex-col items-center">
       <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Jira Analyzer by BMU</CardTitle>
-          <CardDescription>복잡한 Jira 데이터를 AI로 요약하세요. 엑셀 파일을 업로드하거나 붙여넣기만 하면 리포트가 완성됩니다.</CardDescription>
+          <CardTitle className="text-2xl">Jira AI Analyst</CardTitle>
+          <CardDescription>Jira에서 내보낸 Excel 파일을 업로드하거나 내용을 붙여넣어 AI 요약 리포트를 받아보세요.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

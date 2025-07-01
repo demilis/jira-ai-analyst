@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Jira Analyzer by BMU',
+  title: 'Jira AI Analyst',
   description: 'AI-powered Jira issue analysis and reporting from Excel files.',
 };
 
