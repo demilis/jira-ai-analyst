@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ export default function Home() {
   const [jiraId, setJiraId] = useState("");
   const [jiraPassword, setJiraPassword] = useState("");
   const [analysisPoint, setAnalysisPoint] = useState("");
+  const [apiKey, setApiKey] = useState('');
   const [activeTab, setActiveTab] = useState("file");
   const [report, setReport] = useState<JiraReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +41,19 @@ export default function Home() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
+
+  useEffect(() => {
+    const storedApiKey = localStorage.getItem('userApiKey');
+    if (storedApiKey) {
+        setApiKey(storedApiKey);
+    }
+  }, []);
+
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newKey = e.target.value;
+    setApiKey(newKey);
+    localStorage.setItem('userApiKey', newKey);
+  };
 
   const analysisExamples = [
     { value: "5월에 해결된 이슈", label: "5월에 해결된 이슈" },
@@ -145,7 +159,7 @@ export default function Home() {
         stringifiedData = JSON.stringify(final_data);
       }
       
-      const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint });
+      const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint, apiKey });
       setReport(generatedReport);
 
     } catch (error) {
@@ -354,6 +368,24 @@ export default function Home() {
               분석 리포트의 요약 및 조치 항목에 적용할 특정 관점을 입력하세요.
             </p>
           </div>
+
+          <div className="mt-6 space-y-2">
+            <Label htmlFor="api-key" className="flex items-center">
+              <Key className="mr-2 h-4 w-4" />
+              Google AI API Key (선택 사항)
+            </Label>
+            <Input
+              id="api-key"
+              type="password"
+              placeholder="자신의 API 키를 사용하려면 여기에 입력하세요"
+              value={apiKey}
+              onChange={handleApiKeyChange}
+            />
+            <p className="text-xs text-muted-foreground">
+              API 키를 입력하면 해당 키로 AI 분석이 요청됩니다. 입력하지 않으면 서버에 설정된 기본 키가 사용됩니다. 키는 브라우저에만 저장됩니다.
+            </p>
+          </div>
+
         </CardContent>
         <CardFooter>
           <Button
@@ -460,5 +492,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

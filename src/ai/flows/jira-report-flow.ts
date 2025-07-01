@@ -7,12 +7,15 @@
  * - JiraReportOutput - The return type for the generateJiraReport function.
  */
 
-import { ai } from '@/ai/genkit';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
+import { ai as defaultAi } from '@/ai/genkit';
 import { z } from 'zod';
 
 const JiraReportInputSchema = z.object({
   issuesData: z.string().describe("A stringified JSON array of arrays representing the Jira issues from an Excel sheet. The first inner array is the header row."),
   analysisPoint: z.string().optional().describe("An optional user-provided focus point for the analysis, e.g., 'Reporter', 'Priority', or specific keywords."),
+  apiKey: z.string().optional().describe("An optional user-provided Google AI API key."),
 });
 export type JiraReportInput = z.infer<typeof JiraReportInputSchema>;
 
@@ -40,29 +43,35 @@ const JiraReportOutputSchema = z.object({
 });
 export type JiraReportOutput = z.infer<typeof JiraReportOutputSchema>;
 
-// Schema for the output of the FIRST prompt (just the breakdown)
 const IssueBreakdownOnlySchema = z.object({
     issueBreakdown: z.array(IssueBreakdownItemSchema),
 });
 
-// Schema for the input of the SECOND prompt
 const SummarizeInputSchema = z.object({
     breakdownString: z.string(),
     analysisPoint: z.string().optional(),
     currentDate: z.string(),
 });
 
-// Schema for the output of the SECOND prompt (summary + actions + chart data)
 const SummaryAndActionsSchema = z.object({
     summary: z.string().describe("A high-level summary of all the issues provided. It should mention the total number of issues, how many are open, in progress, and done. Mention any noticeable trends or bottlenecks."),
     priorityActions: z.array(z.string()).describe("A bulleted list of the most critical actions to take, based on issue priority, status, and content. Max 3-5 items."),
     statusDistribution: z.array(StatusDistributionItemSchema).describe("Data for a pie chart showing the distribution of issues by status. The 'fill' color should be a visually distinct hex color for each status."),
 });
 
-// FIRST Prompt: Focuses only on creating the issue breakdown.
-// We remove the output schema here to manually parse and clean the AI's output,
-// which prevents schema validation errors from stopping the flow.
-const createBreakdownPrompt = ai.definePrompt({
+
+export async function generateJiraReport(input: JiraReportInput): Promise<JiraReportOutput> {
+  let ai = defaultAi;
+  // If user provides a key, create a new Genkit instance for this specific call.
+  if (input.apiKey && input.apiKey.trim() !== '') {
+    ai = genkit({
+      plugins: [googleAI({ apiKey: input.apiKey })],
+      model: 'googleai/gemini-1.5-flash-latest',
+    });
+  }
+
+  // Define prompts using the selected `ai` instance.
+  const createBreakdownPrompt = ai.definePrompt({
     name: "createBreakdownPrompt",
     input: { schema: JiraReportInputSchema },
     prompt: `You are a machine that converts raw Jira data into a JSON object.
@@ -82,11 +91,9 @@ Your ONLY output should be a valid JSON object with a single "issueBreakdown" ke
 {{{issuesData}}}
 
 Now, generate the JSON object based on the provided Jira Data, strictly following all rules.`,
-});
+  });
 
-
-// SECOND Prompt: Focuses on summarizing the breakdown and creating chart data.
-const summarizeBreakdownPrompt = ai.definePrompt({
+  const summarizeBreakdownPrompt = ai.definePrompt({
     name: "summarizeBreakdownPrompt",
     input: { schema: SummarizeInputSchema },
     output: { schema: SummaryAndActionsSchema },
@@ -130,70 +137,58 @@ Your entire response MUST be a single, valid JSON object with THREE keys: "statu
     -   {{#if analysisPoint}}These actions should be heavily influenced by the analysis point '{{{analysisPoint}}}'.{{/if}}
 
 Now, generate the JSON object based on the provided Issue Breakdown Data, strictly following all analysis rules. The text for summary and priorityActions must be in KOREAN.`,
-});
+  });
 
-const jiraReportFlow = ai.defineFlow(
-    {
-        name: 'jiraReportFlow',
-        inputSchema: JiraReportInputSchema,
-        outputSchema: JiraReportOutputSchema,
-    },
-    async (input) => {
-        // Step 1: Generate the issue breakdown. The prompt returns raw text now.
-        const { text } = await createBreakdownPrompt(input);
-        
-        let breakdownOutput: z.infer<typeof IssueBreakdownOnlySchema>;
+  // Step 1: Generate the issue breakdown. The prompt returns raw text now.
+  const { text } = await createBreakdownPrompt(input);
+  
+  let breakdownOutput: z.infer<typeof IssueBreakdownOnlySchema>;
 
-        try {
-            // AI can return conversational text or markdown. Find the JSON block.
-            const rawText = text();
-            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+  try {
+      // AI can return conversational text or markdown. Find the JSON block.
+      const rawText = text();
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
 
-            if (!jsonMatch) {
-                console.error('No valid JSON object found in AI response:', rawText);
-                throw new Error('AI가 분석 결과를 JSON 형식으로 만드는 데 실패했습니다. 응답에 유효한 JSON이 없습니다.');
-            }
+      if (!jsonMatch) {
+          console.error('No valid JSON object found in AI response:', rawText);
+          throw new Error('AI가 분석 결과를 JSON 형식으로 만드는 데 실패했습니다. 응답에 유효한 JSON이 없습니다.');
+      }
 
-            breakdownOutput = JSON.parse(jsonMatch[0]);
-        } catch (e) {
-            console.error('Failed to parse JSON from AI for breakdown:', e);
-            throw new Error('AI가 분석 결과를 JSON 형식으로 만드는 데 실패했습니다.');
-        }
+      breakdownOutput = JSON.parse(jsonMatch[0]);
+  } catch (e) {
+      console.error('Failed to parse JSON from AI for breakdown:', e);
+      throw new Error('AI가 분석 결과를 JSON 형식으로 만드는 데 실패했습니다.');
+  }
 
-        if (!breakdownOutput || !Array.isArray(breakdownOutput.issueBreakdown)) {
-            throw new Error('AI가 이슈 세부 항목을 생성하는 데 실패했습니다.');
-        }
+  if (!breakdownOutput || !Array.isArray(breakdownOutput.issueBreakdown)) {
+      throw new Error('AI가 이슈 세부 항목을 생성하는 데 실패했습니다.');
+  }
 
-        // Server-side filtering to guarantee data integrity against AI hallucinations or partial data.
-        // This is the critical step to prevent errors from incomplete AI output.
-        const filteredBreakdown = breakdownOutput.issueBreakdown.filter(
-            (issue) => issue && issue.issueKey && issue.issueKey.trim() !== '' && issue.summary && issue.summary.trim() !== ''
-        );
-        
-        if (filteredBreakdown.length === 0) {
-             throw new Error('AI가 유효한 이슈를 분석하지 못했습니다. 데이터 형식을 확인해주세요.');
-        }
+  // Server-side filtering to guarantee data integrity against AI hallucinations or partial data.
+  // This is the critical step to prevent errors from incomplete AI output.
+  const filteredBreakdown = breakdownOutput.issueBreakdown.filter(
+      (issue) => issue && issue.issueKey && issue.issueKey.trim() !== '' && issue.summary && issue.summary.trim() !== ''
+  );
+  
+  if (filteredBreakdown.length === 0) {
+       throw new Error('AI가 유효한 이슈를 분석하지 못했습니다. 데이터 형식을 확인해주세요.');
+  }
 
-        // Step 2: Generate the summary and actions from the filtered breakdown
-        const { output: summaryOutput } = await summarizeBreakdownPrompt({
-            breakdownString: JSON.stringify(filteredBreakdown),
-            analysisPoint: input.analysisPoint,
-            currentDate: new Date().toLocaleDateString('ko-KR'),
-        });
-        if (!summaryOutput) {
-            throw new Error('AI가 요약 및 조치 항목을 생성하는 데 실패했습니다.');
-        }
+  // Step 2: Generate the summary and actions from the filtered breakdown
+  const { output: summaryOutput } = await summarizeBreakdownPrompt({
+      breakdownString: JSON.stringify(filteredBreakdown),
+      analysisPoint: input.analysisPoint,
+      currentDate: new Date().toLocaleDateString('ko-KR'),
+  });
+  if (!summaryOutput) {
+      throw new Error('AI가 요약 및 조치 항목을 생성하는 데 실패했습니다.');
+  }
 
-        // Step 3: Combine the results
-        return {
-            summary: summaryOutput.summary,
-            priorityActions: summaryOutput.priorityActions,
-            issueBreakdown: filteredBreakdown,
-            statusDistribution: summaryOutput.statusDistribution,
-        };
-    }
-);
-
-export async function generateJiraReport(input: JiraReportInput): Promise<JiraReportOutput> {
-  return jiraReportFlow(input);
+  // Step 3: Combine the results
+  return {
+      summary: summaryOutput.summary,
+      priorityActions: summaryOutput.priorityActions,
+      issueBreakdown: filteredBreakdown,
+      statusDistribution: summaryOutput.statusDistribution,
+  };
 }
