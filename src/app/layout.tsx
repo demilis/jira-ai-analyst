@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'MCP Chat',
-  description: 'A simple chat app demonstrating the Model-Context-Protocol concept.',
+  title: 'Jira Issue Reporter',
+  description: 'AI-powered Jira issue reporting from Excel files.',
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet"></link>
       </head>
-      <body className="font-body antialiased h-full">
+      <body className="font-body antialiased h-full bg-secondary">
         {children}
         <Toaster />
       </body>
