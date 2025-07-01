@@ -60,6 +60,7 @@ For EACH issue in the data, create an object with "issueKey", "summary", "status
 1.  **'summary'**: MUST be a VERY SHORT summary of the original issue title, **under 15 words**. DO NOT copy the full original title.
 2.  **'recommendation'**: MUST be a VERY SHORT, actionable recommendation in **KOREAN**, **under 10 words**.
 3.  **VALID JSON**: Your entire response MUST be a single, valid JSON object. It is critical that you complete the JSON structure without being cut off.
+4.  **IGNORE EMPTY ROWS**: If you see an empty row or a row with no useful information in the Jira Data, simply ignore it and DO NOT create a JSON object for it.
 
 **Jira Data:**
 {{{issuesData}}}

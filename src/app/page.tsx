@@ -64,8 +64,10 @@ export default function Home() {
               const worksheet = workbook.Sheets[sheetName];
               let json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-              // Filter out empty rows
-              json_data = json_data.filter(row => Array.isArray(row) && row.length > 0 && row.some(cell => cell !== null && cell !== ''));
+              // Filter out empty rows robustly
+              json_data = json_data.filter(row => 
+                Array.isArray(row) && row.some(cell => cell != null && cell.toString().trim() !== '')
+              );
 
               if (!json_data || json_data.length === 0) {
                 return reject(new Error("Excel 시트가 비어있거나 유효하지 않습니다."));
@@ -88,8 +90,10 @@ export default function Home() {
         const rows = textInput.trim().split('\n');
         let dataArray = rows.map(row => row.split('\t'));
         
-        // Filter out empty rows
-        dataArray = dataArray.filter(row => Array.isArray(row) && row.length > 0 && row.some(cell => cell !== null && cell !== ''));
+        // Filter out empty rows robustly
+        dataArray = dataArray.filter(row => 
+          Array.isArray(row) && row.some(cell => cell != null && cell.toString().trim() !== '')
+        );
         
         stringifiedData = JSON.stringify(dataArray);
       }
