@@ -17,11 +17,11 @@ const JiraReportInputSchema = z.object({
 export type JiraReportInput = z.infer<typeof JiraReportInputSchema>;
 
 const IssueBreakdownItemSchema = z.object({
-    issueKey: z.string().describe("The issue identifier, e.g., 'HMCCCIC-12345'."),
-    summary: z.string().describe("A concise one-sentence summary of the issue title or description."),
-    status: z.string().describe("The current status of the issue."),
-    assignee: z.string().describe("The person assigned to the issue. If none, state 'Unassigned'."),
-    recommendation: z.string().describe("A brief, actionable recommendation from the AI for this specific issue, e.g., 'Follow up with assignee' or 'Clarification needed'."),
+    issueKey: z.string(),
+    summary: z.string(),
+    status: z.string(),
+    assignee: z.string(),
+    recommendation: z.string(),
 });
 
 const JiraReportOutputSchema = z.object({
@@ -33,7 +33,7 @@ export type JiraReportOutput = z.infer<typeof JiraReportOutputSchema>;
 
 // Schema for the output of the FIRST prompt (just the breakdown)
 const IssueBreakdownOnlySchema = z.object({
-    issueBreakdown: z.array(IssueBreakdownItemSchema).describe("A detailed breakdown of each individual issue."),
+    issueBreakdown: z.array(IssueBreakdownItemSchema),
 });
 
 // Schema for the input of the SECOND prompt
@@ -53,15 +53,18 @@ const createBreakdownPrompt = ai.definePrompt({
     name: "createBreakdownPrompt",
     input: { schema: JiraReportInputSchema },
     output: { schema: IssueBreakdownOnlySchema },
-    prompt: `You are an expert at processing raw Jira data. Your ONLY task is to convert the provided Jira data into a JSON object containing a single key: "issueBreakdown".
+    prompt: `You are a machine that converts raw Jira data into a JSON object with a single "issueBreakdown" key.
 For EACH issue in the data, create an object with "issueKey", "summary", "status", "assignee", and "recommendation".
-The 'recommendation' field MUST be in KOREAN.
-Your entire response MUST be a single JSON object with the "issueBreakdown" array. DO NOT add any other keys like "summary" or "priorityActions".
+
+**CRITICAL RULES to prevent errors:**
+1.  **'summary'**: MUST be a VERY SHORT summary of the original issue title, **under 15 words**. DO NOT copy the full original title.
+2.  **'recommendation'**: MUST be a VERY SHORT, actionable recommendation in **KOREAN**, **under 10 words**.
+3.  **VALID JSON**: Your entire response MUST be a single, valid JSON object. It is critical that you complete the JSON structure without being cut off.
 
 **Jira Data:**
 {{{issuesData}}}
 
-Now, generate the JSON object based on the provided Jira Data.`,
+Now, generate the JSON object based on the provided Jira Data, following all rules strictly.`,
 });
 
 // SECOND Prompt: Focuses only on summarizing the breakdown.
