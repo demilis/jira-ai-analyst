@@ -382,7 +382,16 @@ export default function Home() {
               onChange={handleApiKeyChange}
             />
             <p className="text-xs text-muted-foreground">
-              API 키를 입력하면 해당 키로 AI 분석이 요청됩니다. 입력하지 않으면 서버에 설정된 기본 키가 사용됩니다. 키는 브라우저에만 저장됩니다.
+              API 키를 입력하면 해당 키로 AI 분석이 요청됩니다. 키가 없으시면,{' '}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-primary hover:text-primary/80"
+              >
+                여기에서 새 API 키를 발급
+              </a>
+              받으세요. 입력하지 않으면 서버에 설정된 기본 키가 사용됩니다. 키는 브라우저에만 저장됩니다.
             </p>
           </div>
 
