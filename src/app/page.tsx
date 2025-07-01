@@ -64,13 +64,14 @@ export default function Home() {
               const worksheet = workbook.Sheets[sheetName];
               let json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-              // Filter out empty rows robustly
-              json_data = json_data.filter(row => 
-                Array.isArray(row) && row.some(cell => cell != null && cell.toString().trim() !== '')
-              );
+              // Filter out rows that are empty or have very little content
+              json_data = json_data.filter(row => {
+                if (!Array.isArray(row)) return false;
+                return row.filter(cell => cell != null && cell.toString().trim() !== '').length >= 2;
+              });
 
-              if (!json_data || json_data.length === 0) {
-                return reject(new Error("Excel 시트가 비어있거나 유효하지 않습니다."));
+              if (!json_data || json_data.length < 2) { // Need at least header + 1 data row
+                return reject(new Error("Excel 시트가 비어있거나 유효한 데이터가 없습니다."));
               }
               resolve(JSON.stringify(json_data));
             } catch (err) {
@@ -86,15 +87,20 @@ export default function Home() {
           setIsLoading(false);
           return;
         }
-        // Assume the user pastes tab-separated values, like from Excel
         const rows = textInput.trim().split('\n');
         let dataArray = rows.map(row => row.split('\t'));
         
-        // Filter out empty rows robustly
-        dataArray = dataArray.filter(row => 
-          Array.isArray(row) && row.some(cell => cell != null && cell.toString().trim() !== '')
-        );
+        // Filter out rows that are empty or have very little content
+        dataArray = dataArray.filter(row => {
+            if (!Array.isArray(row)) return false;
+            return row.filter(cell => cell != null && cell.toString().trim() !== '').length >= 2;
+        });
         
+        if (!dataArray || dataArray.length === 0) {
+            toast({ variant: "destructive", title: "입력된 내용이 없습니다", description: "유효한 데이터를 붙여넣어 주세요." });
+            setIsLoading(false);
+            return;
+        }
         stringifiedData = JSON.stringify(dataArray);
       }
       
