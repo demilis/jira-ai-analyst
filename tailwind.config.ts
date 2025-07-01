@@ -88,16 +88,10 @@ export default {
             height: '0',
           },
         },
-        'roll': {
-          '0%': { transform: 'rotateX(0deg) rotateY(0deg) scale(1)' },
-          '50%': { transform: 'rotateX(360deg) rotateY(180deg) scale(1.2)' },
-          '100%': { transform: 'rotateX(720deg) rotateY(360deg) scale(1)' },
-        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'roll': 'roll 1s ease-in-out',
       },
     },
   },
