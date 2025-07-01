@@ -10,9 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { generateJiraReport, type JiraReportOutput } from "@/ai/flows/jira-report-flow";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle } from "lucide-react";
+import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle, ChevronsUpDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import * as XLSX from "xlsx";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -24,6 +27,15 @@ export default function Home() {
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const analysisExamples = [
+    { value: "5월에 해결된 이슈", label: "5월에 해결된 이슈" },
+    { value: "담당자별 진행상황", label: "담당자별 진행상황" },
+    { value: "'결함' 관련 이슈", label: "'결함' 관련 이슈" },
+    { value: "지난 주에 생성된 이슈", label: "지난 주에 생성된 이슈" },
+    { value: "우선순위 'High' 이슈", label: "우선순위 'High' 이슈" },
+  ];
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -215,12 +227,51 @@ export default function Home() {
           </Tabs>
           <div className="mt-6 space-y-2">
             <Label htmlFor="analysis-point">분석 관점 (선택 사항)</Label>
-            <Input
-              id="analysis-point"
-              placeholder="예: 5월에 해결된 이슈, 담당자별 진행상황, '결함' 관련"
-              value={analysisPoint}
-              onChange={(e) => setAnalysisPoint(e.target.value)}
-            />
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={popoverOpen}
+                  className="w-full justify-between font-normal text-left"
+                >
+                  <span className="truncate">
+                    {analysisPoint || "예시를 선택하거나 직접 입력하세요..."}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                  <CommandInput
+                    placeholder="관점 검색 또는 직접 입력..."
+                    value={analysisPoint}
+                    onValueChange={setAnalysisPoint}
+                  />
+                  <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
+                  <CommandGroup>
+                    {analysisExamples.map((example) => (
+                      <CommandItem
+                        key={example.value}
+                        value={example.value}
+                        onSelect={(currentValue) => {
+                          setAnalysisPoint(currentValue === analysisPoint ? "" : currentValue);
+                          setPopoverOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            analysisPoint === example.value ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {example.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
             <p className="text-xs text-muted-foreground">
               분석 리포트의 요약 및 조치 항목에 적용할 특정 관점을 입력하세요.
             </p>
