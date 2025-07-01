@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { generateJiraReport, type JiraReportOutput } from "@/ai/flows/jira-report-flow";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle, ChevronsUpDown } from "lucide-react";
+import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle, ChevronsUpDown, User, Key } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import * as XLSX from "xlsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -29,6 +29,8 @@ import { PieChart, Pie, Cell, Tooltip } from "recharts";
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [textInput, setTextInput] = useState("");
+  const [jiraId, setJiraId] = useState("");
+  const [jiraPassword, setJiraPassword] = useState("");
   const [analysisPoint, setAnalysisPoint] = useState("");
   const [activeTab, setActiveTab] = useState("file");
   const [report, setReport] = useState<JiraReportOutput | null>(null);
@@ -51,7 +53,9 @@ export default function Home() {
     if (selectedFile) {
       if (selectedFile.type.includes("sheet") || selectedFile.name.endsWith(".xlsx") || selectedFile.name.endsWith(".xls")) {
         setFile(selectedFile);
-        setTextInput(""); // Clear text input when a file is selected
+        setTextInput("");
+        setJiraId("");
+        setJiraPassword("");
         setReport(null);
       } else {
         toast({
@@ -66,6 +70,15 @@ export default function Home() {
   const handleGenerateReport = async () => {
     setIsLoading(true);
     setReport(null);
+
+    if (activeTab === 'system') {
+        toast({
+            title: "기능 준비 중",
+            description: "Jira 계정 직접 연결 기능은 현재 개발 중입니다.",
+        });
+        setIsLoading(false);
+        return;
+    }
 
     const jiraKeyRegex = /^[A-Z][A-Z0-9_]+-\d+$/;
 
@@ -194,7 +207,18 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={(newTab) => {
+              setActiveTab(newTab);
+              setFile(null);
+              setTextInput('');
+              setJiraId('');
+              setJiraPassword('');
+              setReport(null);
+            }} 
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="file"><FileUp className="mr-2 h-4 w-4"/>파일 업로드</TabsTrigger>
               <TabsTrigger value="text"><FileText className="mr-2 h-4 w-4"/>텍스트 입력</TabsTrigger>
@@ -232,13 +256,37 @@ export default function Home() {
                     value={textInput}
                     onChange={(e) => {
                         setTextInput(e.target.value);
-                        setFile(null); // Clear file input when text is entered
+                        setFile(null);
+                        setJiraId("");
+                        setJiraPassword("");
                     }}
                 />
             </TabsContent>
-            <TabsContent value="system" className="mt-4">
-                <div className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center">
-                    <p className="text-muted-foreground">현재는 지원하지 않습니다.</p>
+            <TabsContent value="system" className="mt-4 space-y-4">
+                <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                        Jira 계정 정보를 입력하면 실시간 데이터를 분석합니다. 정보는 저장되지 않습니다.
+                    </AlertDescription>
+                </Alert>
+                <div className="space-y-2">
+                    <Label htmlFor="jira-id">Jira 아이디 (이메일)</Label>
+                    <Input
+                        id="jira-id"
+                        placeholder="user@example.com"
+                        value={jiraId}
+                        onChange={(e) => setJiraId(e.target.value)}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="jira-password">Jira 비밀번호 (또는 API 토큰)</Label>
+                    <Input
+                        id="jira-password"
+                        type="password"
+                        placeholder="보안을 위해 API 토큰 사용을 권장합니다."
+                        value={jiraPassword}
+                        onChange={(e) => setJiraPassword(e.target.value)}
+                    />
                 </div>
             </TabsContent>
           </Tabs>
@@ -297,7 +345,12 @@ export default function Home() {
         <CardFooter>
           <Button
             onClick={handleGenerateReport}
-            disabled={isLoading || activeTab === 'system' || (activeTab === 'file' && !file) || (activeTab === 'text' && !textInput.trim())}
+            disabled={
+                isLoading || 
+                (activeTab === 'file' && !file) || 
+                (activeTab === 'text' && !textInput.trim()) ||
+                (activeTab === 'system' && (!jiraId || !jiraPassword))
+            }
             className="w-full"
           >
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
