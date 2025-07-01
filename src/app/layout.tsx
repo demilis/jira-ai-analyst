@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Jira Issue Reporter',
-  description: 'AI-powered Jira issue reporting from Excel files.',
+  title: 'Jira Analyzer by BMU',
+  description: 'AI-powered Jira issue analysis and reporting from Excel files.',
 };
 
 export default function RootLayout({

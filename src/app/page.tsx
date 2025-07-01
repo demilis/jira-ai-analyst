@@ -67,6 +67,7 @@ export default function Home() {
               // Filter out rows that are empty or have very little content
               json_data = json_data.filter(row => {
                 if (!Array.isArray(row)) return false;
+                // Ensure the row has at least 2 non-empty cells to be considered valid
                 return row.filter(cell => cell != null && cell.toString().trim() !== '').length >= 2;
               });
 
@@ -93,6 +94,7 @@ export default function Home() {
         // Filter out rows that are empty or have very little content
         dataArray = dataArray.filter(row => {
             if (!Array.isArray(row)) return false;
+            // Ensure the row has at least 2 non-empty cells to be considered valid
             return row.filter(cell => cell != null && cell.toString().trim() !== '').length >= 2;
         });
         
@@ -153,7 +155,7 @@ export default function Home() {
     <div className="container mx-auto p-4 md:p-8 flex flex-col items-center">
       <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Jira 이슈 리포트 생성기</CardTitle>
+          <CardTitle className="text-2xl">Jira Analyzer by BMU</CardTitle>
           <CardDescription>Jira에서 내보낸 Excel 파일을 업로드하거나 내용을 붙여넣어 AI 요약 리포트를 받아보세요.</CardDescription>
         </CardHeader>
         <CardContent>
