@@ -293,7 +293,7 @@ export default function Home() {
                 <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                        Jira 계정 정보를 입력하면 실시간 데이터를 분석합니다. 정보는 저장되지 않습니다.
+                        Jira 계정 정보를 입력하면 실시간 데이터를 분석합니다. 정보는 저장되지 않습니다. (기능 준비 중)
                     </AlertDescription>
                 </Alert>
                 <div className="space-y-2">
@@ -303,6 +303,7 @@ export default function Home() {
                         placeholder="user@example.com"
                         value={jiraId}
                         onChange={(e) => setJiraId(e.target.value)}
+                        disabled
                     />
                 </div>
                 <div className="space-y-2">
@@ -313,6 +314,7 @@ export default function Home() {
                         placeholder="보안을 위해 API 토큰 사용을 권장합니다."
                         value={jiraPassword}
                         onChange={(e) => setJiraPassword(e.target.value)}
+                        disabled
                     />
                 </div>
             </TabsContent>
@@ -372,26 +374,27 @@ export default function Home() {
           <div className="mt-6 space-y-2">
             <Label htmlFor="api-key" className="flex items-center">
               <Key className="mr-2 h-4 w-4" />
-              Google AI API Key (선택 사항)
+              내 Google AI API Key 사용하기 (선택 사항)
             </Label>
             <Input
               id="api-key"
               type="password"
-              placeholder="자신의 API 키를 사용하려면 여기에 입력하세요"
+              placeholder="발급받은 Google AI 키를 여기에 붙여넣으세요"
               value={apiKey}
               onChange={handleApiKeyChange}
             />
             <p className="text-xs text-muted-foreground">
-              API 키를 입력하면 해당 키로 AI 분석이 요청됩니다. 키가 없으시면,{' '}
+              API 키는 Google의 AI 서비스를 이용하기 위한 일종의 '비밀번호'입니다.
+              자신만의 키를 사용하면 더 안정적으로 서비스를 이용할 수 있습니다. 
               <a
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline text-primary hover:text-primary/80"
               >
-                여기에서 새 API 키를 발급
+                {' '}여기에서 무료로 키를 발급
               </a>
-              받으세요. 입력하지 않으면 서버에 설정된 기본 키가 사용됩니다. 키는 브라우저에만 저장됩니다.
+              받아 위 칸에 붙여넣어 보세요. 입력하지 않아도 앱의 기본 키로 분석은 가능하지만, 사용량이 많을 경우 제한될 수 있습니다. 키는 브라우저에만 안전하게 저장됩니다.
             </p>
           </div>
 
