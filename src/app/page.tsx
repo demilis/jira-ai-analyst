@@ -21,7 +21,7 @@ export default function Home() {
       setDie1(Math.floor(Math.random() * 6) + 1);
       setDie2(Math.floor(Math.random() * 6) + 1);
       setIsRolling(false);
-    }, 500); 
+    }, 1000); 
   };
 
   // Set initial random values on client mount to avoid hydration error
@@ -37,10 +37,10 @@ export default function Home() {
           Dice Roller Duo
         </h1>
 
-        <div className="flex gap-4 md:gap-8">
+        <div className="flex gap-4 md:gap-8 [perspective:1000px]">
           <div
             className={cn(
-              "w-24 h-24 md:w-32 md:h-32 bg-primary rounded-2xl shadow-lg",
+              "w-24 h-24 md:w-32 md:h-32 bg-primary rounded-2xl shadow-lg [transform-style:preserve-3d]",
               isRolling && "animate-roll"
             )}
           >
@@ -48,7 +48,7 @@ export default function Home() {
           </div>
           <div
             className={cn(
-              "w-24 h-24 md:w-32 md:h-32 bg-primary rounded-2xl shadow-lg",
+              "w-24 h-24 md:w-32 md:h-32 bg-primary rounded-2xl shadow-lg [transform-style:preserve-3d]",
               isRolling && "animate-roll"
             )}
           >
