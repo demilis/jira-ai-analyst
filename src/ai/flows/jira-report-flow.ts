@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 const JiraReportInputSchema = z.object({
   issuesData: z.string().describe("A stringified JSON array of arrays representing the Jira issues from an Excel sheet. The first inner array is the header row."),
+  analysisPoint: z.string().optional().describe("An optional user-provided focus point for the analysis, e.g., 'Reporter', 'Priority', or specific keywords."),
 });
 export type JiraReportInput = z.infer<typeof JiraReportInputSchema>;
 
@@ -35,6 +36,12 @@ const IssueBreakdownOnlySchema = z.object({
     issueBreakdown: z.array(IssueBreakdownItemSchema).describe("A detailed breakdown of each individual issue."),
 });
 
+// Schema for the input of the SECOND prompt
+const SummarizeInputSchema = z.object({
+    breakdownString: z.string(),
+    analysisPoint: z.string().optional(),
+});
+
 // Schema for the output of the SECOND prompt (summary + actions)
 const SummaryAndActionsSchema = z.object({
     summary: z.string().describe("A high-level summary of all the issues provided. It should mention the total number of issues, how many are open, in progress, and done. Mention any noticeable trends or bottlenecks."),
@@ -48,6 +55,7 @@ const createBreakdownPrompt = ai.definePrompt({
     output: { schema: IssueBreakdownOnlySchema },
     prompt: `You are an expert at processing raw Jira data. Your ONLY task is to convert the provided Jira data into a JSON object containing a single key: "issueBreakdown".
 For EACH issue in the data, create an object with "issueKey", "summary", "status", "assignee", and "recommendation".
+The 'recommendation' field MUST be in KOREAN.
 Your entire response MUST be a single JSON object with the "issueBreakdown" array. DO NOT add any other keys like "summary" or "priorityActions".
 
 **Jira Data:**
@@ -59,19 +67,25 @@ Now, generate the JSON object based on the provided Jira Data.`,
 // SECOND Prompt: Focuses only on summarizing the breakdown.
 const summarizeBreakdownPrompt = ai.definePrompt({
     name: "summarizeBreakdownPrompt",
-    input: { schema: z.object({ breakdownString: z.string() }) },
+    input: { schema: SummarizeInputSchema },
     output: { schema: SummaryAndActionsSchema },
-    prompt: `You are a project management expert. Based on the following JSON data of Jira issues, generate a high-level summary and a list of priority actions.
+    prompt: `You are a project management expert who writes reports in KOREAN.
+Based on the following JSON data of Jira issues, generate a high-level summary and a list of priority actions in KOREAN.
 
-**Issue Breakdown Data:**
+{{#if analysisPoint}}
+The user wants you to specifically focus on '{{{analysisPoint}}}'. Pay close attention to this when creating the summary and priority actions. For example, if the analysis point is 'Priority', group issues by priority in your summary. If it's a specific keyword, highlight issues containing that keyword.
+{{/if}}
+
+**Issue Breakdown Data (JSON):**
 {{{breakdownString}}}
 
 **Instructions:**
 Your entire response MUST be a single, valid JSON object with ONLY two keys: "summary" and "priorityActions".
-1.  **\`summary\` (string):** Write a high-level summary. Count the total issues and break them down by status (e.g., Closed, Resolved, In Progress). Mention any noticeable trends, risks, or bottlenecks.
-2.  **\`priorityActions\` (array of strings):** List the top 3-5 most critical, actionable items for the team to focus on.
+The entire response MUST be in KOREAN.
+1.  **\`summary\` (string, in Korean):** Write a high-level summary. Count the total issues and break them down by status. {{#if analysisPoint}}Incorporate the user's analysis point '{{{analysisPoint}}}' into your summary.{{else}}Mention any noticeable trends, risks, or bottlenecks.{{/if}}
+2.  **\`priorityActions\` (array of strings, in Korean):** List the top 3-5 most critical, actionable items for the team to focus on. {{#if analysisPoint}}These actions should be heavily influenced by the analysis point '{{{analysisPoint}}}'.{{/if}}
 
-Now, generate the JSON object based on the provided Issue Breakdown Data.`,
+Now, generate the KOREAN JSON object based on the provided Issue Breakdown Data.`,
 });
 
 const jiraReportFlow = ai.defineFlow(
@@ -84,15 +98,16 @@ const jiraReportFlow = ai.defineFlow(
         // Step 1: Generate the issue breakdown
         const { output: breakdownOutput } = await createBreakdownPrompt(input);
         if (!breakdownOutput || !breakdownOutput.issueBreakdown) {
-            throw new Error('The AI failed to generate the issue breakdown.');
+            throw new Error('AI가 이슈 세부 항목을 생성하는 데 실패했습니다.');
         }
 
         // Step 2: Generate the summary and actions from the breakdown
         const { output: summaryOutput } = await summarizeBreakdownPrompt({
             breakdownString: JSON.stringify(breakdownOutput.issueBreakdown),
+            analysisPoint: input.analysisPoint,
         });
         if (!summaryOutput) {
-            throw new Error('The AI failed to generate the summary and actions.');
+            throw new Error('AI가 요약 및 조치 항목을 생성하는 데 실패했습니다.');
         }
 
         // Step 3: Combine the results

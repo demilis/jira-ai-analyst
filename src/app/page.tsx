@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +16,7 @@ import * as XLSX from "xlsx";
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [textInput, setTextInput] = useState("");
+  const [analysisPoint, setAnalysisPoint] = useState("");
   const [activeTab, setActiveTab] = useState("file");
   const [report, setReport] = useState<JiraReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,8 +34,8 @@ export default function Home() {
       } else {
         toast({
           variant: "destructive",
-          title: "Invalid File Type",
-          description: "Please upload a valid Excel file (.xlsx, .xls).",
+          title: "유효하지 않은 파일 형식",
+          description: "올바른 Excel 파일(.xlsx, .xls)을 업로드해주세요.",
         });
       }
     }
@@ -48,7 +50,7 @@ export default function Home() {
 
       if (activeTab === 'file') {
         if (!file) {
-          toast({ variant: "destructive", title: "No file selected", description: "Please select an Excel file to generate a report." });
+          toast({ variant: "destructive", title: "파일이 선택되지 않았습니다", description: "리포트를 생성할 Excel 파일을 선택해주세요." });
           setIsLoading(false);
           return;
         }
@@ -66,19 +68,19 @@ export default function Home() {
               json_data = json_data.filter(row => Array.isArray(row) && row.length > 0 && row.some(cell => cell !== null && cell !== ''));
 
               if (!json_data || json_data.length === 0) {
-                return reject(new Error("Excel sheet is empty or invalid."));
+                return reject(new Error("Excel 시트가 비어있거나 유효하지 않습니다."));
               }
               resolve(JSON.stringify(json_data));
             } catch (err) {
               reject(err);
             }
           };
-          reader.onerror = () => reject(new Error("There was a problem reading your file."));
+          reader.onerror = () => reject(new Error("파일을 읽는 중 문제가 발생했습니다."));
           reader.readAsArrayBuffer(file);
         });
       } else { // text input
         if (!textInput.trim()) {
-          toast({ variant: "destructive", title: "No text entered", description: "Please paste your data into the text area." });
+          toast({ variant: "destructive", title: "입력된 내용이 없습니다", description: "텍스트 영역에 데이터를 붙여넣어 주세요." });
           setIsLoading(false);
           return;
         }
@@ -92,15 +94,15 @@ export default function Home() {
         stringifiedData = JSON.stringify(dataArray);
       }
       
-      const generatedReport = await generateJiraReport({ issuesData: stringifiedData });
+      const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint });
       setReport(generatedReport);
 
     } catch (error) {
       console.error("Error generating report:", error);
       toast({
         variant: "destructive",
-        title: "Oh no! Something went wrong.",
-        description: error instanceof Error ? error.message : "There was a problem generating the report.",
+        title: "이런! 문제가 발생했습니다.",
+        description: error instanceof Error ? error.message : "리포트를 생성하는 중 문제가 발생했습니다.",
       });
     } finally {
       setIsLoading(false);
@@ -130,10 +132,10 @@ export default function Home() {
     navigator.clipboard.writeText(reportText).then(() => {
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
-        toast({ title: "Copied to clipboard!" });
+        toast({ title: "클립보드에 복사되었습니다!" });
     }, (err) => {
         console.error('Failed to copy: ', err);
-        toast({ variant: "destructive", title: "Failed to copy report."});
+        toast({ variant: "destructive", title: "복사에 실패했습니다."});
     });
   }
 
@@ -181,6 +183,18 @@ export default function Home() {
                 />
             </TabsContent>
           </Tabs>
+          <div className="mt-6 space-y-2">
+            <Label htmlFor="analysis-point">분석 관점 (선택 사항)</Label>
+            <Input
+              id="analysis-point"
+              placeholder="예: 리포터별 진행상황, 특정 키워드('결함') 관련 이슈"
+              value={analysisPoint}
+              onChange={(e) => setAnalysisPoint(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              분석 리포트의 요약 및 조치 항목에 적용할 특정 관점을 입력하세요.
+            </p>
+          </div>
         </CardContent>
         <CardFooter>
           <Button
@@ -212,13 +226,13 @@ export default function Home() {
             </div>
             <Button variant="outline" size="icon" onClick={copyToClipboard}>
               {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Clipboard className="h-4 w-4" />}
-              <span className="sr-only">Copy for Teams</span>
+              <span className="sr-only">리포트 복사하기</span>
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <h3 className="font-semibold text-lg mb-2">📊 전체 요약</h3>
-              <p className="text-sm text-foreground/80 bg-muted p-3 rounded-md">{report.summary}</p>
+              <p className="text-sm text-foreground/80 bg-muted p-3 rounded-md whitespace-pre-wrap">{report.summary}</p>
             </div>
             <div>
               <h3 className="font-semibold text-lg mb-2">⚡️ 주요 조치 항목</h3>
