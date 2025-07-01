@@ -22,6 +22,8 @@ const IssueBreakdownItemSchema = z.object({
     status: z.string(),
     assignee: z.string(),
     recommendation: z.string(),
+    createdDate: z.string().optional(),
+    resolvedDate: z.string().optional(),
 });
 
 const JiraReportOutputSchema = z.object({
@@ -40,6 +42,7 @@ const IssueBreakdownOnlySchema = z.object({
 const SummarizeInputSchema = z.object({
     breakdownString: z.string(),
     analysisPoint: z.string().optional(),
+    currentDate: z.string(),
 });
 
 // Schema for the output of the SECOND prompt (summary + actions)
@@ -59,11 +62,12 @@ Your ONLY output should be a valid JSON object with a single "issueBreakdown" ke
 **CRITICAL RULES to prevent errors:**
 1.  **PROCESS ONLY VALID ROWS**: A row is valid ONLY IF it contains BOTH an 'Issue Key' (like 'ABC-123') AND a 'Summary' value.
 2.  **IGNORE ALL OTHER ROWS**: You MUST completely ignore any row that is empty, incomplete, or does not have both an Issue Key and a Summary. If a row only has an assignee, or only a status, IGNORE IT. DO NOT create a JSON object for such rows.
-3.  For EACH valid row, create a complete JSON object with "issueKey", "summary", "status", "assignee", and "recommendation".
-4.  **SHORTEN CONTENT**:
+3.  For EACH valid row, create a complete JSON object with all fields from the schema.
+4.  **DATE EXTRACTION**: Look for date columns like 'Created', 'Resolved', '생성일', '해결일'. If found, add their values to 'createdDate' and 'resolvedDate' fields. If not found, omit these fields.
+5.  **SHORTEN CONTENT**:
     -   'summary': MUST be a VERY SHORT summary of the original issue title, **under 15 words**.
     -   'recommendation': MUST be a VERY SHORT, actionable recommendation in **KOREAN**, **under 10 words**.
-5.  **VALID JSON**: Your entire response MUST be a single, valid, complete, and parseable JSON object.
+6.  **VALID JSON**: Your entire response MUST be a single, valid, complete, and parseable JSON object.
 
 **Jira Data:**
 {{{issuesData}}}
@@ -79,9 +83,14 @@ const summarizeBreakdownPrompt = ai.definePrompt({
     output: { schema: SummaryAndActionsSchema },
     prompt: `You are a project management expert who writes reports in KOREAN.
 Based on the following JSON data of Jira issues, generate a high-level summary and a list of priority actions in KOREAN.
+Today's date is {{{currentDate}}}.
 
 {{#if analysisPoint}}
-The user wants you to specifically focus on '{{{analysisPoint}}}'. Pay close attention to this when creating the summary and priority actions. For example, if the analysis point is 'Priority', group issues by priority in your summary. If it's a specific keyword, highlight issues containing that keyword.
+The user wants you to specifically focus on '{{{analysisPoint}}}'. Pay close attention to this when creating the summary and priority actions.
+- For a date-based query (e.g., '5월에 생성된 이슈', '지난 주에 해결된 이슈'), use the 'createdDate' and 'resolvedDate' fields to filter your analysis and provide specific numbers and trends for that period.
+- For other queries (e.g., a specific person, a keyword), filter by 'assignee' or search the 'summary' to focus your report.
+{{else}}
+Provide a general analysis. Mention any noticeable trends, risks, or bottlenecks.
 {{/if}}
 
 **Issue Breakdown Data (JSON):**
@@ -113,6 +122,7 @@ const jiraReportFlow = ai.defineFlow(
         const { output: summaryOutput } = await summarizeBreakdownPrompt({
             breakdownString: JSON.stringify(breakdownOutput.issueBreakdown),
             analysisPoint: input.analysisPoint,
+            currentDate: new Date().toLocaleDateString('ko-KR'),
         });
         if (!summaryOutput) {
             throw new Error('AI가 요약 및 조치 항목을 생성하는 데 실패했습니다.');

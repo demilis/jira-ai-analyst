@@ -137,6 +137,8 @@ export default function Home() {
         plainText += `요약: ${issue.summary}\n`;
         plainText += `상태: ${issue.status}\n`;
         plainText += `담당자: ${issue.assignee}\n`;
+        if (issue.createdDate) plainText += `생성일: ${issue.createdDate}\n`;
+        if (issue.resolvedDate) plainText += `해결일: ${issue.resolvedDate}\n`;
         plainText += `AI 추천: ${issue.recommendation}\n`;
     });
     return plainText;
@@ -202,7 +204,7 @@ export default function Home() {
             <Label htmlFor="analysis-point">분석 관점 (선택 사항)</Label>
             <Input
               id="analysis-point"
-              placeholder="예: 리포터별 진행상황, 특정 키워드('결함') 관련 이슈"
+              placeholder="예: 5월에 해결된 이슈, 담당자별 진행상황, '결함' 관련"
               value={analysisPoint}
               onChange={(e) => setAnalysisPoint(e.target.value)}
             />
@@ -266,6 +268,8 @@ export default function Home() {
                     <AccordionContent className="space-y-2 pl-2">
                        <p><strong>상태:</strong> {issue.status}</p>
                        <p><strong>담당자:</strong> {issue.assignee}</p>
+                       {issue.createdDate && <p><strong>생성일:</strong> {issue.createdDate}</p>}
+                       {issue.resolvedDate && <p><strong>해결일:</strong> {issue.resolvedDate}</p>}
                        <p className="text-primary"><strong>AI 추천:</strong> {issue.recommendation}</p>
                     </AccordionContent>
                   </AccordionItem>
