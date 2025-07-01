@@ -182,8 +182,16 @@ export default function Home() {
     <div className="container mx-auto p-4 md:p-8 flex flex-col items-center">
       <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Jira AI Analyst</CardTitle>
-          <CardDescription>Jira에서 내보낸 Excel 파일을 업로드하거나 내용을 붙여넣어 AI 요약 리포트를 받아보세요.</CardDescription>
+           <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-2xl">Jira AI Analyst</CardTitle>
+              <CardDescription>Jira에서 내보낸 Excel 파일을 업로드하거나 내용을 붙여넣어 AI 요약 리포트를 받아보세요.</CardDescription>
+            </div>
+            <div className="text-right text-xs text-muted-foreground pt-1 whitespace-nowrap">
+              <p>Ver. 1.4.0</p>
+              <p>Jul 2024</p>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -380,6 +388,9 @@ export default function Home() {
           </CardContent>
         </Card>
       )}
+       <footer className="text-center text-xs text-muted-foreground mt-8">
+          <p>Copyright © 2024 BMU. All Rights Reserved.</p>
+      </footer>
     </div>
   );
 }

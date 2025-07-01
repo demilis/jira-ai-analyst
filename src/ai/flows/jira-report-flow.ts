@@ -60,10 +60,11 @@ const SummaryAndActionsSchema = z.object({
 });
 
 // FIRST Prompt: Focuses only on creating the issue breakdown.
+// We remove the output schema here to manually parse and clean the AI's output,
+// which prevents schema validation errors from stopping the flow.
 const createBreakdownPrompt = ai.definePrompt({
     name: "createBreakdownPrompt",
     input: { schema: JiraReportInputSchema },
-    output: { schema: IssueBreakdownOnlySchema },
     prompt: `You are a machine that converts raw Jira data into a JSON object.
 Your ONLY output should be a valid JSON object with a single "issueBreakdown" key.
 
@@ -138,15 +139,28 @@ const jiraReportFlow = ai.defineFlow(
         outputSchema: JiraReportOutputSchema,
     },
     async (input) => {
-        // Step 1: Generate the issue breakdown
-        const { output: breakdownOutput } = await createBreakdownPrompt(input);
-        if (!breakdownOutput || !breakdownOutput.issueBreakdown) {
+        // Step 1: Generate the issue breakdown. The prompt returns raw text now.
+        const { text } = await createBreakdownPrompt(input);
+        
+        let breakdownOutput: z.infer<typeof IssueBreakdownOnlySchema>;
+
+        try {
+            // The AI sometimes wraps the JSON in markdown, so we clean it.
+            const cleanedJsonString = text().replace(/```json\n?([\s\S]*)\n?```/, '$1').trim();
+            breakdownOutput = JSON.parse(cleanedJsonString);
+        } catch (e) {
+            console.error('Failed to parse JSON from AI for breakdown:', e);
+            throw new Error('AI가 분석 결과를 JSON 형식으로 만드는 데 실패했습니다.');
+        }
+
+        if (!breakdownOutput || !Array.isArray(breakdownOutput.issueBreakdown)) {
             throw new Error('AI가 이슈 세부 항목을 생성하는 데 실패했습니다.');
         }
 
         // Server-side filtering to guarantee data integrity against AI hallucinations or partial data.
+        // This is the critical step to prevent errors from incomplete AI output.
         const filteredBreakdown = breakdownOutput.issueBreakdown.filter(
-            (issue) => issue.issueKey && issue.issueKey.trim() !== '' && issue.summary && issue.summary.trim() !== ''
+            (issue) => issue && issue.issueKey && issue.issueKey.trim() !== '' && issue.summary && issue.summary.trim() !== ''
         );
         
         if (filteredBreakdown.length === 0) {
