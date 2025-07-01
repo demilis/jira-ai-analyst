@@ -28,21 +28,6 @@ const JiraReportOutputSchema = z.object({
 });
 export type JiraReportOutput = z.infer<typeof JiraReportOutputSchema>;
 
-const jiraReportTool = ai.defineTool(
-  {
-    name: 'generateJiraReport',
-    description: 'Generates a structured report from Jira issue data.',
-    inputSchema: JiraReportInputSchema,
-    outputSchema: JiraReportOutputSchema,
-  },
-  async (input) => {
-    // This is a placeholder. In a real scenario, you might do additional processing here.
-    // For this app, the main logic is handled by the prompt.
-    // The structured output is generated directly by the LLM.
-    return {} as JiraReportOutput; // This won't be used, as the prompt will generate the full output.
-  }
-)
-
 const prompt = ai.definePrompt({
     name: "jiraReportPrompt",
     input: { schema: JiraReportInputSchema },
@@ -54,12 +39,12 @@ Analyze the data and generate a clear, concise, and actionable summary report.
 Here is the data:
 {{{issuesData}}}
 
-Your report must include:
-1.  A high-level summary of the overall situation.
-2.  A short, prioritized list of key actions needed.
-3.  A breakdown of each issue with its key, summary, status, assignee, and an AI-powered recommendation.
+Your response MUST be a JSON object that strictly adheres to the defined output schema.
+The JSON object must contain these three top-level keys: 'summary', 'priorityActions', and 'issueBreakdown'.
 
-Please provide the output in the structured format defined.
+1.  For the 'summary' key, provide a high-level summary of the overall situation.
+2.  For the 'priorityActions' key, provide a short, prioritized list of key actions needed.
+3.  For the 'issueBreakdown' key, provide a breakdown of each issue with its key, summary, status, assignee, and an AI-powered recommendation.
 `,
 });
 
