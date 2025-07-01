@@ -16,6 +16,15 @@ import * as XLSX from "xlsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
+
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -310,9 +319,37 @@ export default function Home() {
               <span className="sr-only">리포트 복사하기</span>
             </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {report.statusDistribution && report.statusDistribution.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg text-center">📊 이슈 상태 분포</h3>
+                <ChartContainer config={{}} className="mx-auto aspect-square h-[250px]">
+                  <PieChart>
+                    <Tooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel />}
+                    />
+                     <Pie
+                        data={report.statusDistribution}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={60}
+                        strokeWidth={5}
+                      >
+                        {report.statusDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} className="focus:outline-none" />
+                        ))}
+                      </Pie>
+                    <ChartLegend
+                      content={<ChartLegendContent nameKey="name" />}
+                      className="-translate-y-[20px] flex-wrap justify-center"
+                    />
+                  </PieChart>
+                </ChartContainer>
+              </div>
+            )}
             <div>
-              <h3 className="font-semibold text-lg mb-2">📊 전체 요약</h3>
+              <h3 className="font-semibold text-lg mb-2">📄 전체 요약</h3>
               <p className="text-sm text-foreground/80 bg-muted p-3 rounded-md whitespace-pre-wrap">{report.summary}</p>
             </div>
             <div>
