@@ -145,9 +145,16 @@ const jiraReportFlow = ai.defineFlow(
         let breakdownOutput: z.infer<typeof IssueBreakdownOnlySchema>;
 
         try {
-            // The AI sometimes wraps the JSON in markdown, so we clean it.
-            const cleanedJsonString = text().replace(/```json\n?([\s\S]*)\n?```/, '$1').trim();
-            breakdownOutput = JSON.parse(cleanedJsonString);
+            // AI can return conversational text or markdown. Find the JSON block.
+            const rawText = text();
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+
+            if (!jsonMatch) {
+                console.error('No valid JSON object found in AI response:', rawText);
+                throw new Error('AI가 분석 결과를 JSON 형식으로 만드는 데 실패했습니다. 응답에 유효한 JSON이 없습니다.');
+            }
+
+            breakdownOutput = JSON.parse(jsonMatch[0]);
         } catch (e) {
             console.error('Failed to parse JSON from AI for breakdown:', e);
             throw new Error('AI가 분석 결과를 JSON 형식으로 만드는 데 실패했습니다.');
