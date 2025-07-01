@@ -32,27 +32,37 @@ const prompt = ai.definePrompt({
     name: "jiraReportPrompt",
     input: { schema: JiraReportInputSchema },
     output: { schema: JiraReportOutputSchema },
-    prompt: `You are a highly efficient project manager. Your task is to analyze a list of Jira issues provided as a stringified JSON array of arrays from an Excel export. The first inner array is the header row, which defines the columns.
-
-Analyze the data and generate a clear, concise, and actionable summary report.
+    prompt: `You are a highly efficient project manager. Your task is to analyze a list of Jira issues and generate a summary report. The issues are provided as a stringified JSON array of arrays, where the first inner array is the header row.
 
 Here is the data:
 {{{issuesData}}}
 
-Your response MUST be a JSON object that strictly adheres to the defined output schema.
-The JSON object must contain these three top-level keys: 'summary', 'priorityActions', and 'issueBreakdown'.
+After analyzing all the issues, generate a clear, concise, and actionable summary report.
 
-1.  For the 'summary' key, provide a high-level summary of the overall situation.
-2.  For the 'priorityActions' key, provide a short, prioritized list of key actions needed.
-3.  For the 'issueBreakdown' key, provide a breakdown of each issue with its key, summary, status, assignee, and an AI-powered recommendation.
+Your response MUST be a JSON object that strictly adheres to the defined output schema.
+The JSON object MUST contain all three of these top-level keys: 'summary', 'priorityActions', and 'issueBreakdown'. Do not omit any keys.
+
+1.  **summary**: Provide a high-level summary of the overall situation. Mention total issues, statuses (e.g., open, in progress, done), and any noticeable trends or bottlenecks.
+2.  **priorityActions**: Provide a short, prioritized list of 3-5 critical actions to take based on issue priority, status, and content.
+3.  **issueBreakdown**: Provide a detailed breakdown of each individual issue, including its key, summary, status, assignee, and an AI-powered recommendation.
 `,
 });
 
+const jiraReportFlow = ai.defineFlow(
+    {
+        name: 'jiraReportFlow',
+        inputSchema: JiraReportInputSchema,
+        outputSchema: JiraReportOutputSchema,
+    },
+    async (input) => {
+        const { output } = await prompt(input);
+        if (!output) {
+            throw new Error('The AI failed to generate a report.');
+        }
+        return output;
+    }
+);
 
 export async function generateJiraReport(input: JiraReportInput): Promise<JiraReportOutput> {
-  const { output } = await prompt(input);
-  if (!output) {
-      throw new Error("The AI failed to generate a report.");
-  }
-  return output;
+  return jiraReportFlow(input);
 }

@@ -60,7 +60,10 @@ export default function Home() {
               const workbook = XLSX.read(data, { type: 'array' });
               const sheetName = workbook.SheetNames[0];
               const worksheet = workbook.Sheets[sheetName];
-              const json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+              let json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+              // Filter out empty rows
+              json_data = json_data.filter(row => Array.isArray(row) && row.length > 0 && row.some(cell => cell !== null && cell !== ''));
 
               if (!json_data || json_data.length === 0) {
                 return reject(new Error("Excel sheet is empty or invalid."));
@@ -81,7 +84,11 @@ export default function Home() {
         }
         // Assume the user pastes tab-separated values, like from Excel
         const rows = textInput.trim().split('\n');
-        const dataArray = rows.map(row => row.split('\t'));
+        let dataArray = rows.map(row => row.split('\t'));
+        
+        // Filter out empty rows
+        dataArray = dataArray.filter(row => Array.isArray(row) && row.length > 0 && row.some(cell => cell !== null && cell !== ''));
+        
         stringifiedData = JSON.stringify(dataArray);
       }
       
@@ -105,7 +112,7 @@ export default function Home() {
     if (!report) return "";
     let plainText = `Jira 이슈 요약 리포트\n\n`;
     plainText += `[전체 요약]\n${report.summary}\n\n`;
-    plainText += `[주요 조치 항목]\n${report.priorityActions.join("\n- ")}\n\n`;
+    plainText += `[주요 조치 항목]\n- ${report.priorityActions.join("\n- ")}\n\n`;
     plainText += `[개별 이슈 상세]\n`;
     report.issueBreakdown.forEach(issue => {
         plainText += `------------------------------------\n`;
