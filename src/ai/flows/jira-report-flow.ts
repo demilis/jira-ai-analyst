@@ -53,20 +53,24 @@ const createBreakdownPrompt = ai.definePrompt({
     name: "createBreakdownPrompt",
     input: { schema: JiraReportInputSchema },
     output: { schema: IssueBreakdownOnlySchema },
-    prompt: `You are a machine that converts raw Jira data into a JSON object with a single "issueBreakdown" key.
-For EACH issue in the data, create an object with "issueKey", "summary", "status", "assignee", and "recommendation".
+    prompt: `You are a machine that converts raw Jira data into a JSON object.
+Your ONLY output should be a valid JSON object with a single "issueBreakdown" key.
 
 **CRITICAL RULES to prevent errors:**
-1.  **IGNORE INCOMPLETE ROWS**: This is the most important rule. You MUST ignore any row that is empty, or does not contain text for both an 'Issue Key' (like 'ABC-123') AND a 'Summary'. DO NOT create a JSON object for such rows.
-2.  **'summary'**: MUST be a VERY SHORT summary of the original issue title, **under 15 words**.
-3.  **'recommendation'**: MUST be a VERY SHORT, actionable recommendation in **KOREAN**, **under 10 words**.
-4.  **VALID JSON**: Your entire response MUST be a single, valid JSON object. It must be complete and parseable.
+1.  **PROCESS ONLY VALID ROWS**: A row is valid ONLY IF it contains BOTH an 'Issue Key' (like 'ABC-123') AND a 'Summary' value.
+2.  **IGNORE ALL OTHER ROWS**: You MUST completely ignore any row that is empty, incomplete, or does not have both an Issue Key and a Summary. If a row only has an assignee, or only a status, IGNORE IT. DO NOT create a JSON object for such rows.
+3.  For EACH valid row, create a complete JSON object with "issueKey", "summary", "status", "assignee", and "recommendation".
+4.  **SHORTEN CONTENT**:
+    -   'summary': MUST be a VERY SHORT summary of the original issue title, **under 15 words**.
+    -   'recommendation': MUST be a VERY SHORT, actionable recommendation in **KOREAN**, **under 10 words**.
+5.  **VALID JSON**: Your entire response MUST be a single, valid, complete, and parseable JSON object.
 
 **Jira Data:**
 {{{issuesData}}}
 
-Now, generate the JSON object based on the provided Jira Data, following all rules strictly.`,
+Now, generate the JSON object based on the provided Jira Data, strictly following all rules.`,
 });
+
 
 // SECOND Prompt: Focuses only on summarizing the breakdown.
 const summarizeBreakdownPrompt = ai.definePrompt({

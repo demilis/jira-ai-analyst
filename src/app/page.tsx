@@ -45,6 +45,20 @@ export default function Home() {
     setIsLoading(true);
     setReport(null);
 
+    const jiraKeyRegex = /^[A-Z][A-Z0-9_]+-\d+$/;
+
+    const filterData = (data: any[][]) => {
+      if (!data || data.length === 0) return [];
+      const header = data.shift() || []; // Assume first row is header
+      const filteredData = data.filter(row => {
+        if (!Array.isArray(row)) return false;
+        const hasEnoughCells = row.filter(cell => cell != null && cell.toString().trim() !== '').length >= 2;
+        const hasJiraKey = row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.trim()));
+        return hasEnoughCells && hasJiraKey;
+      });
+      return [header, ...filteredData];
+    };
+
     try {
       let stringifiedData: string;
 
@@ -64,17 +78,12 @@ export default function Home() {
               const worksheet = workbook.Sheets[sheetName];
               let json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-              // Filter out rows that are empty or have very little content
-              json_data = json_data.filter(row => {
-                if (!Array.isArray(row)) return false;
-                // Ensure the row has at least 2 non-empty cells to be considered valid
-                return row.filter(cell => cell != null && cell.toString().trim() !== '').length >= 2;
-              });
+              const final_data = filterData(json_data);
 
-              if (!json_data || json_data.length < 2) { // Need at least header + 1 data row
-                return reject(new Error("Excel 시트가 비어있거나 유효한 데이터가 없습니다."));
+              if (final_data.length < 2) { // Need at least header + 1 data row
+                return reject(new Error("Excel 시트가 비어있거나 유효한 데이터가 없습니다. 이슈 키를 포함한 데이터가 있는지 확인해주세요."));
               }
-              resolve(JSON.stringify(json_data));
+              resolve(JSON.stringify(final_data));
             } catch (err) {
               reject(err);
             }
@@ -88,22 +97,16 @@ export default function Home() {
           setIsLoading(false);
           return;
         }
-        const rows = textInput.trim().split('\n');
-        let dataArray = rows.map(row => row.split('\t'));
+        let dataArray = textInput.trim().split('\n').map(row => row.split('\t'));
         
-        // Filter out rows that are empty or have very little content
-        dataArray = dataArray.filter(row => {
-            if (!Array.isArray(row)) return false;
-            // Ensure the row has at least 2 non-empty cells to be considered valid
-            return row.filter(cell => cell != null && cell.toString().trim() !== '').length >= 2;
-        });
+        const final_data = filterData(dataArray);
         
-        if (!dataArray || dataArray.length === 0) {
-            toast({ variant: "destructive", title: "입력된 내용이 없습니다", description: "유효한 데이터를 붙여넣어 주세요." });
+        if (final_data.length < 2) {
+            toast({ variant: "destructive", title: "입력된 내용이 없습니다", description: "유효한 데이터를 붙여넣어 주세요. 이슈 키를 포함한 데이터가 있는지 확인해주세요." });
             setIsLoading(false);
             return;
         }
-        stringifiedData = JSON.stringify(dataArray);
+        stringifiedData = JSON.stringify(final_data);
       }
       
       const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint });
