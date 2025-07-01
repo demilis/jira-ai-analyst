@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { generateJiraReport, type JiraReportOutput } from "@/ai/flows/jira-report-flow";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, FileUp, Clipboard, Check, FileText } from "lucide-react";
+import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import * as XLSX from "xlsx";
 
 export default function Home() {
@@ -165,11 +166,18 @@ export default function Home() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="file"><FileUp className="mr-2 h-4 w-4"/>파일 업로드</TabsTrigger>
               <TabsTrigger value="text"><FileText className="mr-2 h-4 w-4"/>텍스트 입력</TabsTrigger>
+              <TabsTrigger value="system"><Server className="mr-2 h-4 w-4"/>시스템 접근</TabsTrigger>
             </TabsList>
             <TabsContent value="file" className="mt-4">
+                <Alert className="mb-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                    회사 보안에 유의하세요.
+                    </AlertDescription>
+                </Alert>
                 <div
                     className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => fileInputRef.current?.click()}
@@ -199,6 +207,11 @@ export default function Home() {
                     }}
                 />
             </TabsContent>
+            <TabsContent value="system" className="mt-4">
+                <div className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center">
+                    <p className="text-muted-foreground">현재는 지원하지 않습니다.</p>
+                </div>
+            </TabsContent>
           </Tabs>
           <div className="mt-6 space-y-2">
             <Label htmlFor="analysis-point">분석 관점 (선택 사항)</Label>
@@ -216,7 +229,7 @@ export default function Home() {
         <CardFooter>
           <Button
             onClick={handleGenerateReport}
-            disabled={isLoading || (activeTab === 'file' && !file) || (activeTab === 'text' && !textInput.trim())}
+            disabled={isLoading || activeTab === 'system' || (activeTab === 'file' && !file) || (activeTab === 'text' && !textInput.trim())}
             className="w-full"
           >
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
