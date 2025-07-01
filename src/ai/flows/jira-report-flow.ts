@@ -87,8 +87,13 @@ Today's date is {{{currentDate}}}.
 
 {{#if analysisPoint}}
 The user wants you to specifically focus on '{{{analysisPoint}}}'. Pay close attention to this when creating the summary and priority actions.
-- For a date-based query (e.g., '5월에 생성된 이슈', '지난 주에 해결된 이슈'), use the 'createdDate' and 'resolvedDate' fields to filter your analysis and provide specific numbers and trends for that period.
-- For other queries (e.g., a specific person, a keyword), filter by 'assignee' or search the 'summary' to focus your report.
+
+**CRITICAL INSTRUCTIONS FOR DATE-BASED ANALYSIS:**
+1.  The 'createdDate' and 'resolvedDate' fields are in 'YYYY-MM-DD' or 'YYYY-MM-DD HH:mm' format.
+2.  When the user asks for a specific month (e.g., '2월에 해결된 이슈' which means 'issues resolved in February'), you MUST filter the 'issueBreakdown' data to include ONLY the issues that match that month. For '2월' (February), the month part of the date must be '02'.
+3.  Your entire summary and priority actions MUST be based ONLY on the filtered data. Do NOT include issues from other months in your analysis.
+4.  For other queries (e.g., a specific person, a keyword), filter by 'assignee' or search the 'summary' to focus your report.
+
 {{else}}
 Provide a general analysis. Mention any noticeable trends, risks, or bottlenecks.
 {{/if}}
@@ -99,10 +104,10 @@ Provide a general analysis. Mention any noticeable trends, risks, or bottlenecks
 **Instructions:**
 Your entire response MUST be a single, valid JSON object with ONLY two keys: "summary" and "priorityActions".
 The entire response MUST be in KOREAN.
-1.  **\`summary\` (string, in Korean):** Write a high-level summary. Count the total issues and break them down by status. {{#if analysisPoint}}Incorporate the user's analysis point '{{{analysisPoint}}}' into your summary.{{else}}Mention any noticeable trends, risks, or bottlenecks.{{/if}}
-2.  **\`priorityActions\` (array of strings, in Korean):** List the top 3-5 most critical, actionable items for the team to focus on. {{#if analysisPoint}}These actions should be heavily influenced by the analysis point '{{{analysisPoint}}}'.{{/if}}
+1.  **\`summary\` (string, in Korean):** Write a high-level summary of the ANALYZED (and potentially filtered) issues. Count the total issues and break them down by status. {{#if analysisPoint}}Incorporate the user's analysis point '{{{analysisPoint}}}' into your summary.{{else}}Mention any noticeable trends, risks, or bottlenecks.{{/if}}
+2.  **\`priorityActions\` (array of strings, in Korean):** List the top 3-5 most critical, actionable items for the team to focus on, based on the ANALYZED (and potentially filtered) issues. {{#if analysisPoint}}These actions should be heavily influenced by the analysis point '{{{analysisPoint}}}'.{{/if}}
 
-Now, generate the KOREAN JSON object based on the provided Issue Breakdown Data.`,
+Now, generate the KOREAN JSON object based on the provided Issue Breakdown Data, strictly following all analysis rules.`,
 });
 
 const jiraReportFlow = ai.defineFlow(
