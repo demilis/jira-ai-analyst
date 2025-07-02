@@ -133,6 +133,15 @@ Your entire response MUST be a single, valid JSON object with THREE keys: "statu
 Now, generate the JSON object based on the provided Issue Breakdown Data, strictly following all analysis rules. The text for summary and priorityActions must be in KOREAN.`,
 });
 
+const truncateWords = (text: string, maxWords: number): string => {
+  if (!text) return '';
+  const words = text.split(' ');
+  if (words.length > maxWords) {
+    return words.slice(0, maxWords).join(' ') + '...';
+  }
+  return text;
+};
+
 
 export async function generateJiraReport(input: JiraReportInput): Promise<JiraReportOutput> {
   // Step 1: Generate the issue breakdown with a lenient schema.
@@ -152,10 +161,10 @@ export async function generateJiraReport(input: JiraReportInput): Promise<JiraRe
     )
     .map((issue): z.infer<typeof FinalIssueBreakdownItemSchema> => ({
         issueKey: issue.issueKey!,
-        summary: issue.summary!,
+        summary: truncateWords(issue.summary!, 15),
         status: issue.status || '상태 없음',
         assignee: issue.assignee || '담당자 없음',
-        recommendation: issue.recommendation || '추천 없음',
+        recommendation: truncateWords(issue.recommendation || '추천 없음', 10),
         createdDate: issue.createdDate,
         resolvedDate: issue.resolvedDate,
     }));

@@ -81,16 +81,16 @@ export default function Home() {
         return;
     }
 
-    const jiraKeyRegex = /^[A-Z][A-Z0-9_]+-\d+$/;
+    const jiraKeyRegex = /[A-Z][A-Z0-9_]+-\d+/;
 
     const filterData = (data: any[][]) => {
       if (!data || data.length === 0) return [];
       const header = data.shift() || []; // Assume first row is header
       const filteredData = data.filter(row => {
         if (!Array.isArray(row)) return false;
-        const hasEnoughCells = row.filter(cell => cell != null && cell.toString().trim() !== '').length >= 2;
-        const hasJiraKey = row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.trim()));
-        return hasEnoughCells && hasJiraKey;
+        const hasContent = row.some(cell => cell != null && cell.toString().trim() !== '');
+        const hasJiraKey = row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString()));
+        return hasContent && hasJiraKey;
       });
       return [header, ...filteredData];
     };
