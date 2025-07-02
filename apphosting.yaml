@@ -10,4 +10,5 @@ env:
   - variable: DUMMY_VAR
     value: '1'
     availability:
-      - RUNTIME
+      - RUNTIMEprint(default_api.run_terminal_command(command='firebase functions:secrets:set GOOGLE_API_KEY'))
+
