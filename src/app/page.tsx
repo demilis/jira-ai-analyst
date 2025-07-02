@@ -225,8 +225,7 @@ export default function Home() {
               <CardDescription>Jira에서 내보낸 Excel 파일을 업로드하거나 내용을 붙여넣어 AI 요약 리포트를 받아보세요.</CardDescription>
             </div>
             <div className="text-right text-xs text-muted-foreground pt-1 whitespace-nowrap">
-              <p>Ver. 1.4.0</p>
-              <p>Jul 2024</p>
+              <p>Ver. 1.4.0, Jul 2025</p>
             </div>
           </div>
         </CardHeader>
@@ -334,13 +333,8 @@ export default function Home() {
                 open={popoverOpen}
                 onOpenChange={(isOpen) => {
                     setPopoverOpen(isOpen);
-                    if (isOpen) {
-                        // When opening the popover, set the input field's value
-                        // to be the same as the final committed value.
-                        setInputValue(analysisPoint);
-                    } else {
-                        // When closing the popover, commit the temporary input value
-                        // as the new final analysis point.
+                    if (!isOpen) {
+                        // When closing, commit the temporary input value to the final state.
                         setAnalysisPoint(inputValue);
                     }
                 }}
@@ -351,6 +345,11 @@ export default function Home() {
                   role="combobox"
                   aria-expanded={popoverOpen}
                   className="w-full justify-between font-normal text-left"
+                  onClick={() => {
+                    // When opening, reset the temporary input value to the last committed value.
+                    // This allows users to re-open and see the full list again.
+                    setInputValue(analysisPoint);
+                  }}
                 >
                   <span className="truncate">
                     {analysisPoint || "예시를 선택하거나 직접 입력하세요..."}
@@ -373,18 +372,15 @@ export default function Home() {
                           key={example.value}
                           value={example.value}
                           onSelect={(currentValue) => {
-                            // When an item is selected from the list,
-                            // update both the final value and the input value,
-                            // then close the popover.
-                            setAnalysisPoint(currentValue);
-                            setInputValue(currentValue);
+                            const finalValue = currentValue === inputValue ? "" : currentValue;
+                            setAnalysisPoint(finalValue);
+                            setInputValue(finalValue);
                             setPopoverOpen(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              // The checkmark should reflect the FINAL committed value.
                               analysisPoint === example.value ? "opacity-100" : "opacity-0"
                             )}
                           />
@@ -502,7 +498,7 @@ export default function Home() {
         </Card>
       )}
        <footer className="text-center text-xs text-muted-foreground mt-8">
-          <p>Copyright © 2024 BMU. All Rights Reserved.</p>
+          <p>Copyright © 2025 BMU. All Rights Reserved.</p>
       </footer>
     </div>
   );
