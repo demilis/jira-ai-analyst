@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,14 +32,19 @@ export default function Home() {
   const [textInput, setTextInput] = useState("");
   const [jiraId, setJiraId] = useState("");
   const [jiraPassword, setJiraPassword] = useState("");
-  const [analysisPoint, setAnalysisPoint] = useState("");
+  
+  // --- Start of Combobox State Fix ---
+  const [analysisPoint, setAnalysisPoint] = useState(""); // This is the final, committed value
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(""); // This is the temporary value for the input/search field
+  // --- End of Combobox State Fix ---
+
   const [activeTab, setActiveTab] = useState("file");
   const [report, setReport] = useState<JiraReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const analysisExamples = [
     { value: "5월에 해결된 이슈", label: "5월에 해결된 이슈" },
@@ -91,29 +96,26 @@ export default function Home() {
     const filterData = (data: any[][]) => {
         if (!data || data.length === 0) return [];
         
-        // 데이터의 첫 번째 행부터 유효한 Jira 키를 가진 행을 찾습니다.
         const dataStartIndex = data.findIndex(row => 
             Array.isArray(row) && row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString()))
         );
 
         if (dataStartIndex === -1) {
-             return []; // 유효한 데이터 시작점을 찾지 못하면 빈 배열 반환
+             return [];
         }
-
-        // 헤더는 데이터 시작점 바로 이전 행으로 가정하거나, 시작점이 0이면 첫 번째 행으로 가정합니다.
-        const headerIndex = dataStartIndex > 0 ? data.slice(0, dataStartIndex).reverse().findIndex(row => Array.isArray(row) && row.length > 2) : 0;
-        const header = data[dataStartIndex - 1 - headerIndex];
+        
+        const headerRow = data.find((row, index) => index < dataStartIndex && Array.isArray(row) && row.length > 2) || data[0];
         const dataRows = data.slice(dataStartIndex);
-
+        
         const filteredRows = dataRows.filter(row => 
-            Array.isArray(row) && row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString()))
+          Array.isArray(row) && row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString())) && row.join('').trim() !== ''
         );
 
         if (filteredRows.length === 0) {
             return [];
         }
 
-        return [header, ...filteredRows];
+        return [headerRow, ...filteredRows];
     };
 
     try {
@@ -133,11 +135,11 @@ export default function Home() {
               const workbook = XLSX.read(data, { type: 'array' });
               const sheetName = workbook.SheetNames[0];
               const worksheet = workbook.Sheets[sheetName];
-              let json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+              let json_data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
               const final_data = filterData(json_data);
 
-              if (final_data.length < 2) { // Need at least header + 1 data row
+              if (final_data.length < 2) {
                 return reject(new Error("Excel 시트가 비어있거나 유효한 데이터가 없습니다. 이슈 키를 포함한 데이터가 있는지 확인해주세요."));
               }
               resolve(JSON.stringify(final_data));
@@ -159,7 +161,7 @@ export default function Home() {
         const final_data = filterData(dataArray);
         
         if (final_data.length < 2) {
-            toast({ variant: "destructive", title: "입력된 내용이 없습니다", description: "유효한 데이터를 붙여넣어 주세요. 이슈 키를 포함한 데이터가 있는지 확인해주세요." });
+            toast({ variant: "destructive", title: "유효한 데이터를 붙여넣어 주세요.", description: "이슈 키를 포함한 데이터가 있는지 확인해주세요." });
             setIsLoading(false);
             return;
         }
@@ -328,7 +330,21 @@ export default function Home() {
           </Tabs>
           <div className="mt-6 space-y-2">
             <Label htmlFor="analysis-point">분석 관점 (선택 사항)</Label>
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+            <Popover
+                open={popoverOpen}
+                onOpenChange={(isOpen) => {
+                    setPopoverOpen(isOpen);
+                    if (isOpen) {
+                        // When opening the popover, set the input field's value
+                        // to be the same as the final committed value.
+                        setInputValue(analysisPoint);
+                    } else {
+                        // When closing the popover, commit the temporary input value
+                        // as the new final analysis point.
+                        setAnalysisPoint(inputValue);
+                    }
+                }}
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -346,8 +362,8 @@ export default function Home() {
                 <Command>
                   <CommandInput
                     placeholder="관점 검색 또는 직접 입력..."
-                    value={analysisPoint}
-                    onValueChange={setAnalysisPoint}
+                    value={inputValue}
+                    onValueChange={setInputValue}
                   />
                   <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
                   <CommandList>
@@ -357,13 +373,18 @@ export default function Home() {
                           key={example.value}
                           value={example.value}
                           onSelect={(currentValue) => {
+                            // When an item is selected from the list,
+                            // update both the final value and the input value,
+                            // then close the popover.
                             setAnalysisPoint(currentValue);
+                            setInputValue(currentValue);
                             setPopoverOpen(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
+                              // The checkmark should reflect the FINAL committed value.
                               analysisPoint === example.value ? "opacity-100" : "opacity-0"
                             )}
                           />
