@@ -15,7 +15,7 @@ import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle, Che
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import * as XLSX from "xlsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import {
   ChartContainer,
@@ -101,7 +101,8 @@ export default function Home() {
         }
 
         // 헤더는 데이터 시작점 바로 이전 행으로 가정하거나, 시작점이 0이면 첫 번째 행으로 가정합니다.
-        const header = dataStartIndex > 0 ? data[dataStartIndex - 1] : data[dataStartIndex];
+        const headerIndex = dataStartIndex > 0 ? data.slice(0, dataStartIndex).reverse().findIndex(row => Array.isArray(row) && row.length > 2) : 0;
+        const header = data[dataStartIndex - 1 - headerIndex];
         const dataRows = data.slice(dataStartIndex);
 
         const filteredRows = dataRows.filter(row => 
@@ -349,26 +350,28 @@ export default function Home() {
                     onValueChange={setAnalysisPoint}
                   />
                   <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
-                  <CommandGroup>
-                    {analysisExamples.map((example) => (
-                      <CommandItem
-                        key={example.value}
-                        value={example.value}
-                        onSelect={(currentValue) => {
-                          setAnalysisPoint(currentValue);
-                          setPopoverOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            analysisPoint === example.value ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {example.label}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
+                  <CommandList>
+                    <CommandGroup>
+                      {analysisExamples.map((example) => (
+                        <CommandItem
+                          key={example.value}
+                          value={example.value}
+                          onSelect={(currentValue) => {
+                            setAnalysisPoint(currentValue);
+                            setPopoverOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              analysisPoint === example.value ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {example.label}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
