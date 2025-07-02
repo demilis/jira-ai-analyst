@@ -116,7 +116,7 @@ Your entire response MUST be a single, valid JSON object with THREE keys: "statu
 
 1.  **\`statusDistribution\` (array of objects, English keys):**
     -   First, analyze the \`status\` field for every issue in the provided JSON data.
-    -   Count the number of issues for each unique status (e.g., 'Closed', 'Build request').
+    -   Count the number of issues for each unique status (e.g., 'Closed', 'In Progress').
     -   Create a JSON array where each object represents a status.
     -   Each object MUST have three keys: \`name\` (string, the status), \`value\` (number, the count), and \`fill\` (string, a unique, visually distinct hex color code like "#8884d8" that you generate).
     -   Example: \`[{"name": "Closed", "value": 25, "fill": "#82ca9d"}, {"name": "In Progress", "value": 10, "fill": "#ffc658"}]\`
@@ -141,25 +141,32 @@ export async function generateJiraReport(input: JiraReportInput): Promise<JiraRe
       throw new Error('AI가 이슈 세부 항목을 생성하는 데 실패했습니다.');
   }
 
-  // Step 2: Server-side filtering to guarantee data integrity.
-  // This is the critical step to prevent errors from incomplete AI output.
-  const filteredBreakdown = breakdownOutput.issueBreakdown.filter(
-      (issue): issue is z.infer<typeof FinalIssueBreakdownItemSchema> =>
-          !!issue &&
-          typeof issue.issueKey === 'string' && issue.issueKey.trim() !== '' &&
-          typeof issue.summary === 'string' && issue.summary.trim() !== '' &&
-          typeof issue.status === 'string' &&
-          typeof issue.assignee === 'string' &&
-          typeof issue.recommendation === 'string'
-  );
+  // Step 2: Server-side data cleaning to guarantee data integrity.
+  // This ensures every item conforms to the FinalIssueBreakdownItemSchema by providing default values.
+  const cleanedBreakdown = breakdownOutput.issueBreakdown
+    .filter(
+        (issue) =>
+            !!issue &&
+            typeof issue.issueKey === 'string' && issue.issueKey.trim() !== '' &&
+            typeof issue.summary === 'string' && issue.summary.trim() !== ''
+    )
+    .map((issue): z.infer<typeof FinalIssueBreakdownItemSchema> => ({
+        issueKey: issue.issueKey!,
+        summary: issue.summary!,
+        status: issue.status || '상태 없음',
+        assignee: issue.assignee || '담당자 없음',
+        recommendation: issue.recommendation || '추천 없음',
+        createdDate: issue.createdDate,
+        resolvedDate: issue.resolvedDate,
+    }));
   
-  if (filteredBreakdown.length === 0) {
+  if (cleanedBreakdown.length === 0) {
        throw new Error('AI가 유효한 이슈를 분석하지 못했습니다. 데이터에 이슈 키와 요약 정보가 포함되어 있는지 확인해주세요.');
   }
 
-  // Step 3: Generate the summary and actions from the filtered breakdown
+  // Step 3: Generate the summary and actions from the cleaned breakdown
   const { output: summaryOutput } = await summarizeBreakdownPrompt({
-      breakdownString: JSON.stringify(filteredBreakdown),
+      breakdownString: JSON.stringify(cleanedBreakdown),
       analysisPoint: input.analysisPoint,
       currentDate: new Date().toLocaleDateString('ko-KR'),
   });
@@ -171,7 +178,7 @@ export async function generateJiraReport(input: JiraReportInput): Promise<JiraRe
   return {
       summary: summaryOutput.summary,
       priorityActions: summaryOutput.priorityActions,
-      issueBreakdown: filteredBreakdown,
+      issueBreakdown: cleanedBreakdown,
       statusDistribution: summaryOutput.statusDistribution,
   };
 }
