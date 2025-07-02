@@ -47,6 +47,11 @@ export default function Home() {
     { value: "'결함' 관련 이슈", label: "'결함' 관련 이슈" },
     { value: "지난 주에 생성된 이슈", label: "지난 주에 생성된 이슈" },
     { value: "우선순위 'High' 이슈", label: "우선순위 'High' 이슈" },
+    { value: "총 이슈 수", label: "총 이슈 수" },
+    { value: "오픈 이슈", label: "오픈 이슈" },
+    { value: "해결된 이슈", label: "해결된 이슈" },
+    { value: "주요 병목 구간", label: "주요 병목 구간" },
+    { value: "이슈많은담당자", label: "이슈많은담당자" },
   ];
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,15 +89,21 @@ export default function Home() {
     const jiraKeyRegex = /[A-Z][A-Z0-9_]+-\d+/;
 
     const filterData = (data: any[][]) => {
-      if (!data || data.length === 0) return [];
-      const header = data.shift() || []; // Assume first row is header
-      const filteredData = data.filter(row => {
-        if (!Array.isArray(row)) return false;
-        const hasContent = row.some(cell => cell != null && cell.toString().trim() !== '');
-        const hasJiraKey = row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString()));
-        return hasContent && hasJiraKey;
-      });
-      return [header, ...filteredData];
+        if (!data || data.length === 0) return [];
+        const headerIndex = data.findIndex(row => Array.isArray(row) && row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString())));
+        if (headerIndex === -1) return []; // No header with Jira Key found
+    
+        const header = data[headerIndex > 0 ? headerIndex - 1 : 0] || [];
+        const dataRows = data.slice(headerIndex);
+    
+        const filteredData = dataRows.filter(row => {
+            if (!Array.isArray(row)) return false;
+            const hasContent = row.some(cell => cell != null && cell.toString().trim() !== '');
+            const hasJiraKey = row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString()));
+            return hasContent && hasJiraKey;
+        });
+        
+        return [header, ...filteredData];
     };
 
     try {

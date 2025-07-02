@@ -98,11 +98,17 @@ Today's date is {{{currentDate}}}.
 {{#if analysisPoint}}
 The user wants you to specifically focus on '{{{analysisPoint}}}'. Pay close attention to this when creating the summary and priority actions.
 
-**CRITICAL INSTRUCTIONS FOR DATE-BASED ANALYSIS:**
-1.  The 'createdDate' and 'resolvedDate' fields are in 'YYYY-MM-DD' or 'YYYY-MM-DD HH:mm' format.
-2.  When the user asks for a specific month (e.g., '2월에 해결된 이슈' which means 'issues resolved in February'), you MUST filter the 'issueBreakdown' data to include ONLY the issues that match that month. For '2월' (February), the month part of the date must be '02'.
-3.  Your entire summary and priority actions MUST be based ONLY on the filtered data. Do NOT include issues from other months in your analysis.
-4.  For other queries (e.g., a specific person, a keyword), filter by 'assignee' or search the 'summary' to focus your report.
+**CRITICAL INSTRUCTIONS FOR ANALYSIS:**
+- **Date-based Query:** If the user asks for a specific month or week (e.g., '2월에 해결된 이슈' for 'issues resolved in February', or '지난 주에 생성된 이슈' for 'issues created last week'), you MUST filter the 'issueBreakdown' data to include ONLY the issues that match that period. The 'createdDate' and 'resolvedDate' fields are in 'YYYY-MM-DD' or 'YYYY-MM-DD HH:mm' format. Your entire analysis MUST be based ONLY on the filtered data.
+- **Keyword-based Query:** For other queries, treat them as keywords. For example:
+  - If the analysis point is '총 이슈 수' (Total Issues), clearly state the total count of issues analyzed.
+  - If it's '오픈 이슈' (Open Issues), focus on the number and characteristics of issues that are not yet resolved.
+  - If it's '해결된 이슈' (Resolved Issues), highlight the number of recently resolved issues and any patterns in resolution.
+  - If it's '이슈많은담당자' (Assignee with Many Issues), identify assignees with a high number of open or in-progress issues and suggest workload balancing actions.
+  - If it's '주요 병목 구간' (Key Bottlenecks), look for statuses where issues accumulate or spend long periods, and suggest process improvements.
+- **General Query:** For other queries (e.g., a specific person's name, or a keyword like '결함'), filter by 'assignee' or search the 'summary' to focus your report.
+
+Mention any noticeable trends, risks, or bottlenecks relevant to the analysis point.
 
 {{else}}
 Provide a general analysis. Mention any noticeable trends, risks, or bottlenecks.
@@ -124,13 +130,13 @@ Your entire response MUST be a single, valid JSON object with THREE keys: "statu
 2.  **\`summary\` (string, in Korean):**
     -   Write a high-level summary of the ANALYZED (and potentially filtered) issues.
     -   **Use the status counts from your \`statusDistribution\` analysis** to mention the total issues and the breakdown by status.
-    -   {{#if analysisPoint}}Incorporate the user's analysis point '{{{analysisPoint}}}' into your summary.{{else}}Mention any noticeable trends, risks, or bottlenecks.{{/if}}
+    {{#if analysisPoint}}분석 관점('{{{analysisPoint}}}')을 반드시 반영하여 요약해 주세요.{{else}}전반적인 트렌드, 리스크, 병목 현상을 언급하세요.{{/if}}
 
 3.  **\`priorityActions\` (array of strings, in Korean):**
     -   List the top 3-5 most critical, actionable items for the team to focus on, based on the ANALYZED (and potentially filtered) issues.
-    -   {{#if analysisPoint}}These actions should be heavily influenced by the analysis point '{{{analysisPoint}}}'.{{/if}}
+    {{#if analysisPoint}}조치 항목은 분석 관점('{{{analysisPoint}}}')과 직접적으로 관련되어야 합니다.{{/if}}
 
-Now, generate the JSON object based on the provided Issue Breakdown Data, strictly following all analysis rules. The text for summary and priorityActions must be in KOREAN.`,
+Now, generate the JSON object based on the provided Issue Breakdown Data, strictly following all analysis rules. The text for summary and priorityActions must be in KOREAN.`
 });
 
 const truncateWords = (text: string, maxWords: number): string => {
