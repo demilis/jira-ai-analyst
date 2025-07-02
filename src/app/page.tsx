@@ -90,27 +90,29 @@ export default function Home() {
 
     const filterData = (data: any[][]) => {
         if (!data || data.length === 0) return [];
-        const headerIndex = data.findIndex(row => Array.isArray(row) && row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString())));
-        if (headerIndex === -1) {
-            const firstRow = data[0] || [];
-            const hasHeaderLikeContent = firstRow.some(cell => 
-                typeof cell === 'string' && ['key', 'summary', 'status', 'assignee', 'reporter', 'created', 'updated', 'resolved', '요약', '상태', '담당자'].some(h => cell.toLowerCase().includes(h))
-            );
-            if(hasHeaderLikeContent) return data;
+        
+        // 데이터의 첫 번째 행부터 유효한 Jira 키를 가진 행을 찾습니다.
+        const dataStartIndex = data.findIndex(row => 
+            Array.isArray(row) && row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString()))
+        );
+
+        if (dataStartIndex === -1) {
+             return []; // 유효한 데이터 시작점을 찾지 못하면 빈 배열 반환
+        }
+
+        // 헤더는 데이터 시작점 바로 이전 행으로 가정하거나, 시작점이 0이면 첫 번째 행으로 가정합니다.
+        const header = dataStartIndex > 0 ? data[dataStartIndex - 1] : data[dataStartIndex];
+        const dataRows = data.slice(dataStartIndex);
+
+        const filteredRows = dataRows.filter(row => 
+            Array.isArray(row) && row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString()))
+        );
+
+        if (filteredRows.length === 0) {
             return [];
         }
-    
-        const header = data[headerIndex > 0 ? headerIndex - 1 : 0] || [];
-        const dataRows = data.slice(headerIndex);
-    
-        const filteredData = dataRows.filter(row => {
-            if (!Array.isArray(row)) return false;
-            const hasContent = row.some(cell => cell != null && cell.toString().trim() !== '');
-            const hasJiraKey = row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString()));
-            return hasContent && hasJiraKey;
-        });
-        
-        return [header, ...filteredData];
+
+        return [header, ...filteredRows];
     };
 
     try {
@@ -353,7 +355,7 @@ export default function Home() {
                         key={example.value}
                         value={example.value}
                         onSelect={(currentValue) => {
-                          setAnalysisPoint(currentValue === analysisPoint ? "" : currentValue);
+                          setAnalysisPoint(currentValue);
                           setPopoverOpen(false);
                         }}
                       >
