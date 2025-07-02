@@ -91,7 +91,14 @@ export default function Home() {
     const filterData = (data: any[][]) => {
         if (!data || data.length === 0) return [];
         const headerIndex = data.findIndex(row => Array.isArray(row) && row.some(cell => typeof cell === 'string' && jiraKeyRegex.test(cell.toString())));
-        if (headerIndex === -1) return []; // No header with Jira Key found
+        if (headerIndex === -1) {
+            const firstRow = data[0] || [];
+            const hasHeaderLikeContent = firstRow.some(cell => 
+                typeof cell === 'string' && ['key', 'summary', 'status', 'assignee', 'reporter', 'created', 'updated', 'resolved', '요약', '상태', '담당자'].some(h => cell.toLowerCase().includes(h))
+            );
+            if(hasHeaderLikeContent) return data;
+            return [];
+        }
     
         const header = data[headerIndex > 0 ? headerIndex - 1 : 0] || [];
         const dataRows = data.slice(headerIndex);
