@@ -14,11 +14,12 @@ import { z } from 'zod';
 const JiraReportInputSchema = z.object({
   issuesData: z.string().describe("A stringified JSON array of arrays representing the Jira issues from an Excel sheet. The first inner array is the header row."),
   analysisPoint: z.string().optional().describe("An optional user-provided focus point for the analysis, e.g., 'Reporter', 'Priority', or specific keywords."),
+  currentDate: z.string().describe("The current date for reference in date-based queries like 'last week'."),
 });
 export type JiraReportInput = z.infer<typeof JiraReportInputSchema>;
 
-// Schema for the final, cleaned breakdown item. All essential fields are required.
-const FinalIssueBreakdownItemSchema = z.object({
+// Schema for the items in the final report.
+const IssueBreakdownItemSchema = z.object({
     issueKey: z.string(),
     summary: z.string(),
     status: z.string(),
@@ -26,12 +27,6 @@ const FinalIssueBreakdownItemSchema = z.object({
     recommendation: z.string(),
     createdDate: z.string().optional(),
     resolvedDate: z.string().optional(),
-});
-
-// Schema for the raw AI output, allowing some fields to be optional to prevent validation errors.
-const RawIssueBreakdownItemSchema = FinalIssueBreakdownItemSchema.deepPartial().extend({
-    issueKey: z.string().optional(), // issueKey is critical but we handle its absence in the filter.
-    summary: z.string().optional(),
 });
 
 const StatusDistributionItemSchema = z.object({
@@ -43,157 +38,100 @@ const StatusDistributionItemSchema = z.object({
 const JiraReportOutputSchema = z.object({
   summary: z.string().describe("A high-level summary of all the issues provided. It should mention the total number of issues, how many are open, in progress, and done. Mention any noticeable trends or bottlenecks."),
   priorityActions: z.array(z.string()).describe("A bulleted list of the most critical actions to take, based on issue priority, status, and content. Max 3-5 items."),
-  issueBreakdown: z.array(FinalIssueBreakdownItemSchema).describe("A detailed breakdown of each individual issue."),
+  issueBreakdown: z.array(IssueBreakdownItemSchema).describe("A detailed breakdown of each individual issue."),
   statusDistribution: z.array(StatusDistributionItemSchema).describe("Data for a pie chart showing the distribution of issues by status. The 'fill' color should be a visually distinct hex color for each status."),
 });
 export type JiraReportOutput = z.infer<typeof JiraReportOutputSchema>;
 
-const IssueBreakdownOnlySchema = z.object({
-    issueBreakdown: z.array(RawIssueBreakdownItemSchema),
-});
 
-const SummarizeInputSchema = z.object({
-    breakdownString: z.string(),
-    analysisPoint: z.string().optional(),
-    currentDate: z.string(),
-});
+/**
+ * The main exported function that the client-side calls.
+ * It prepares the input and invokes the Genkit flow.
+ */
+export async function generateJiraReport(input: { issuesData: string; analysisPoint?: string }): Promise<JiraReportOutput> {
+    const fullInput: JiraReportInput = {
+        ...input,
+        currentDate: new Date().toLocaleDateString('ko-KR'),
+    };
 
-const SummaryAndActionsSchema = z.object({
-    summary: z.string().describe("A high-level summary of all the issues provided. It should mention the total number of issues, how many are open, in progress, and done. Mention any noticeable trends or bottlenecks."),
-    priorityActions: z.array(z.string()).describe("A bulleted list of the most critical actions to take, based on issue priority, status, and content. Max 3-5 items."),
-    statusDistribution: z.array(StatusDistributionItemSchema).describe("Data for a pie chart showing the distribution of issues by status. The 'fill' color should be a visually distinct hex color for each status."),
-});
+    const { output } = await jiraReportFlow(fullInput);
+    if (!output) {
+      throw new Error('AI가 리포트를 생성하는 데 실패했습니다. 입력 데이터나 분석 관점을 확인해주세요.');
+    }
+    return output;
+}
 
-const createBreakdownPrompt = ai.definePrompt({
-  name: "createBreakdownPrompt",
-  input: { schema: z.object({ issuesData: z.string() }) },
-  output: { schema: IssueBreakdownOnlySchema }, // Use the lenient schema for raw output
-  prompt: `You are a machine that converts raw Jira data into a JSON object.
-Your ONLY output should be a valid JSON object with a single "issueBreakdown" key.
+const jiraReportPrompt = ai.definePrompt({
+    name: 'jiraReportPrompt',
+    input: { schema: JiraReportInputSchema },
+    output: { schema: JiraReportOutputSchema },
+    prompt: `You are an expert project management AI that analyzes Jira data and generates comprehensive reports in KOREAN. Your entire response MUST be a single, valid JSON object that adheres to the output schema.
 
-**CRITICAL RULES to prevent errors:**
-1.  **PROCESS ONLY VALID ROWS**: A row is valid ONLY IF it contains BOTH an 'Issue Key' (like 'ABC-123') AND a 'Summary' value.
-2.  **IGNORE ALL OTHER ROWS**: You MUST completely ignore any row that is empty, incomplete, or does not have both an Issue Key and a Summary. If a row only has an assignee, or only a status, IGNORE IT. DO NOT create a JSON object for such rows.
-3.  For EACH valid row, create a complete JSON object with all fields from the schema.
-4.  **DATE EXTRACTION**: Look for date columns like 'Created', 'Resolved', '생성일', '해결일'. If found, add their values to 'createdDate' and 'resolvedDate' fields. If not found, omit these fields.
-5.  **SHORTEN CONTENT**:
-    -   'summary': MUST be a VERY SHORT summary of the original issue title, **under 15 words**.
-    -   'recommendation': MUST be a VERY SHORT, actionable recommendation in **KOREAN**, **under 10 words**.
-6.  **VALID JSON**: Your entire response MUST be a single, valid, complete, and parseable JSON object.
-
-**Jira Data:**
-{{{issuesData}}}
-
-Now, generate the JSON object based on the provided Jira Data, strictly following all rules.`,
-});
-
-const summarizeBreakdownPrompt = ai.definePrompt({
-  name: "summarizeBreakdownPrompt",
-  input: { schema: SummarizeInputSchema },
-  output: { schema: SummaryAndActionsSchema },
-  prompt: `You are a project management expert who writes reports in KOREAN.
-Based on the following JSON data of Jira issues, generate a high-level summary, a list of priority actions, and data for a status chart.
 Today's date is {{{currentDate}}}.
 
+**CRITICAL RULES:**
+1.  **PROCESS ONLY VALID DATA:** A row in the input data is valid ONLY IF it contains BOTH an 'Issue Key' (like 'ABC-123') AND a 'Summary' value. You MUST completely ignore any row that is empty, malformed, or does not have both these values. Do not create objects for invalid rows.
+2.  **STRICT JSON OUTPUT:** Your entire response MUST be a single, valid, complete, and parseable JSON object. No extra text or explanations.
+
+**ANALYSIS INSTRUCTIONS:**
+
 {{#if analysisPoint}}
-The user wants you to specifically focus on '{{{analysisPoint}}}'. Pay close attention to this when creating the summary and priority actions.
+The user wants you to specifically focus on: '{{{analysisPoint}}}'.
+You MUST filter the data based on this analysis point BEFORE generating the report.
 
-**CRITICAL INSTRUCTIONS FOR ANALYSIS:**
-- **Date-based Query:** If the user asks for a specific month or week (e.g., '2월에 해결된 이슈' for 'issues resolved in February', or '지난 주에 생성된 이슈' for 'issues created last week'), you MUST filter the 'issueBreakdown' data to include ONLY the issues that match that period. The 'createdDate' and 'resolvedDate' fields are in 'YYYY-MM-DD' or 'YYYY-MM-DD HH:mm' format. Your entire analysis MUST be based ONLY on the filtered data.
-- **Keyword-based Query:** For other queries, treat them as keywords. For example:
-  - If the analysis point is '총 이슈 수' (Total Issues), clearly state the total count of issues analyzed.
-  - If it's '오픈 이슈' (Open Issues), focus on the number and characteristics of issues that are not yet resolved.
-  - If it's '해결된 이슈' (Resolved Issues), highlight the number of recently resolved issues and any patterns in resolution.
-  - If it's '이슈많은담당자' (Assignee with Many Issues), identify assignees with a high number of open or in-progress issues and suggest workload balancing actions.
-  - If it's '주요 병목 구간' (Key Bottlenecks), look for statuses where issues accumulate or spend long periods, and suggest process improvements.
-- **General Query:** For other queries (e.g., a specific person's name, or a keyword like '결함'), filter by 'assignee' or search the 'summary' to focus your report.
-
-Mention any noticeable trends, risks, or bottlenecks relevant to the analysis point.
-
+-   **Date-based Query:** If the request is for a specific month or week (e.g., '2월에 해결된 이슈', '지난 주 생성된 이슈'), you MUST filter the issues by 'createdDate' or 'resolvedDate' first. The entire report (summary, actions, chart, breakdown) must be based ONLY on the filtered data.
+-   **Keyword/General Query:** For other requests (e.g., '주요 병목 구간', a person's name, '결함'), filter the issues by status, assignee, or by searching the summary text. The entire report must be based on the filtered results.
 {{else}}
-Provide a general analysis. Mention any noticeable trends, risks, or bottlenecks.
+Provide a general analysis of ALL valid issues.
 {{/if}}
 
-**Issue Breakdown Data (JSON):**
-{{{breakdownString}}}
+**JSON OUTPUT GENERATION:**
 
-**Instructions:**
-Your entire response MUST be a single, valid JSON object with THREE keys: "statusDistribution", "summary", and "priorityActions".
+Based on the (potentially filtered) data, generate a JSON object with four keys: "statusDistribution", "summary", "priorityActions", and "issueBreakdown".
 
-1.  **\`statusDistribution\` (array of objects, English keys):**
-    -   First, analyze the \`status\` field for every issue in the provided JSON data.
-    -   Count the number of issues for each unique status (e.g., 'Closed', 'In Progress').
-    -   Create a JSON array where each object represents a status.
-    -   Each object MUST have three keys: \`name\` (string, the status), \`value\` (number, the count), and \`fill\` (string, a unique, visually distinct hex color code like "#8884d8" that you generate).
-    -   Example: \`[{"name": "Closed", "value": 25, "fill": "#82ca9d"}, {"name": "In Progress", "value": 10, "fill": "#ffc658"}]\`
+1.  **\`issueBreakdown\` (Array of Objects):**
+    -   For each valid issue, create an object.
+    -   'summary': MUST be a VERY SHORT summary of the original issue title, **under 15 words**.
+    -   'recommendation': MUST be a VERY SHORT, actionable recommendation in **KOREAN**, **under 10 words**.
+    -   'assignee'/'status': If a value is missing, use a sensible default like '담당자 없음' or '상태 없음'.
+    -   'createdDate'/'resolvedDate': Extract from columns like 'Created', 'Resolved', '생성일', '해결일' if they exist.
 
-2.  **\`summary\` (string, in Korean):**
-    -   Write a high-level summary of the ANALYZED (and potentially filtered) issues.
-    -   **Use the status counts from your \`statusDistribution\` analysis** to mention the total issues and the breakdown by status.
-    {{#if analysisPoint}}분석 관점('{{{analysisPoint}}}')을 반드시 반영하여 요약해 주세요.{{else}}전반적인 트렌드, 리스크, 병목 현상을 언급하세요.{{/if}}
+2.  **\`statusDistribution\` (Array of Objects, for a pie chart):**
+    -   Count the issues for each unique status from your processed \`issueBreakdown\` list.
+    -   Create an array of objects, each with \`name\` (status), \`value\` (count), and a unique, visually distinct hex \`fill\` color.
 
-3.  **\`priorityActions\` (array of strings, in Korean):**
-    -   List the top 3-5 most critical, actionable items for the team to focus on, based on the ANALYZED (and potentially filtered) issues.
-    {{#if analysisPoint}}조치 항목은 분석 관점('{{{analysisPoint}}}')과 직접적으로 관련되어야 합니다.{{/if}}
+3.  **\`summary\` (String, in Korean):**
+    -   Write a high-level summary of the issues you analyzed. Use the counts from your \`statusDistribution\` analysis.
+    -   The summary MUST reflect the '{{{analysisPoint}}}' if provided.
 
-Now, generate the JSON object based on the provided Issue Breakdown Data, strictly following all analysis rules. The text for summary and priorityActions must be in KOREAN.`
+4.  **\`priorityActions\` (Array of Strings, in Korean):**
+    -   List the top 3-5 most critical actions based on your analysis.
+    -   The actions MUST be directly related to the '{{{analysisPoint}}}' if provided.
+
+**Input Jira Data (JSON Array of Arrays):**
+{{{issuesData}}}
+
+Now, generate the complete JSON report strictly following all rules.`,
 });
 
-const truncateWords = (text: string, maxWords: number): string => {
-  if (!text) return '';
-  const words = text.split(' ');
-  if (words.length > maxWords) {
-    return words.slice(0, maxWords).join(' ') + '...';
-  }
-  return text;
-};
+const jiraReportFlow = ai.defineFlow(
+    {
+        name: 'jiraReportFlow',
+        inputSchema: JiraReportInputSchema,
+        outputSchema: JiraReportOutputSchema,
+    },
+    async (input) => {
+        const { output } = await jiraReportPrompt(input);
+        if (!output) {
+            // This case might be hit if the AI returns a non-JSON string or empty response.
+            throw new Error('AI returned an invalid or empty response.');
+        }
 
+        // Add a final safety net. If breakdown is empty, throw a clearer user-facing error.
+        if (!output.issueBreakdown || output.issueBreakdown.length === 0) {
+            throw new Error('AI가 유효한 이슈를 분석하지 못했습니다. 데이터에 이슈 키와 요약 정보가 포함되어 있는지 확인해주세요.');
+        }
 
-export async function generateJiraReport(input: JiraReportInput): Promise<JiraReportOutput> {
-  // Step 1: Generate the issue breakdown with a lenient schema.
-  const { output: breakdownOutput } = await createBreakdownPrompt({ issuesData: input.issuesData });
-  if (!breakdownOutput || !Array.isArray(breakdownOutput.issueBreakdown)) {
-      throw new Error('AI가 이슈 세부 항목을 생성하는 데 실패했습니다.');
-  }
-
-  // Step 2: Server-side data cleaning to guarantee data integrity.
-  // This ensures every item conforms to the FinalIssueBreakdownItemSchema by providing default values.
-  const cleanedBreakdown = breakdownOutput.issueBreakdown
-    .filter(
-        (issue) =>
-            !!issue &&
-            typeof issue.issueKey === 'string' && issue.issueKey.trim() !== '' &&
-            typeof issue.summary === 'string' && issue.summary.trim() !== ''
-    )
-    .map((issue): z.infer<typeof FinalIssueBreakdownItemSchema> => ({
-        issueKey: issue.issueKey!,
-        summary: truncateWords(issue.summary!, 15),
-        status: issue.status || '상태 없음',
-        assignee: issue.assignee || '담당자 없음',
-        recommendation: truncateWords(issue.recommendation || '추천 없음', 10),
-        createdDate: issue.createdDate,
-        resolvedDate: issue.resolvedDate,
-    }));
-  
-  if (cleanedBreakdown.length === 0) {
-       throw new Error('AI가 유효한 이슈를 분석하지 못했습니다. 데이터에 이슈 키와 요약 정보가 포함되어 있는지 확인해주세요.');
-  }
-
-  // Step 3: Generate the summary and actions from the cleaned breakdown
-  const { output: summaryOutput } = await summarizeBreakdownPrompt({
-      breakdownString: JSON.stringify(cleanedBreakdown),
-      analysisPoint: input.analysisPoint,
-      currentDate: new Date().toLocaleDateString('ko-KR'),
-  });
-  if (!summaryOutput) {
-      throw new Error('AI가 요약 및 조치 항목을 생성하는 데 실패했습니다.');
-  }
-
-  // Step 4: Combine the results
-  return {
-      summary: summaryOutput.summary,
-      priorityActions: summaryOutput.priorityActions,
-      issueBreakdown: cleanedBreakdown,
-      statusDistribution: summaryOutput.statusDistribution,
-  };
-}
+        return output;
+    }
+);
