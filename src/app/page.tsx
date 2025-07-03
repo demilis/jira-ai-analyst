@@ -37,8 +37,8 @@ export default function Home() {
   const [jiraProjectKey, setJiraProjectKey] = useState("");
   
   const [analysisPoint, setAnalysisPoint] = useState(""); 
+  const [inputValue, setInputValue] = useState("");
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(""); 
 
   const [activeTab, setActiveTab] = useState("file");
   const [report, setReport] = useState<JiraReportOutput | null>(null);
@@ -46,6 +46,26 @@ export default function Home() {
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const savedUrl = localStorage.getItem('jiraInstanceUrl');
+    const savedEmail = localStorage.getItem('jiraEmail');
+    const savedToken = localStorage.getItem('jiraToken');
+    const savedProjectKey = localStorage.getItem('jiraProjectKey');
+
+    if (savedUrl) setJiraInstanceUrl(savedUrl);
+    if (savedEmail) setJiraEmail(savedEmail);
+    if (savedToken) setJiraToken(savedToken);
+    if (savedProjectKey) setJiraProjectKey(savedProjectKey);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('jiraInstanceUrl', jiraInstanceUrl);
+    localStorage.setItem('jiraEmail', jiraEmail);
+    localStorage.setItem('jiraToken', jiraToken);
+    localStorage.setItem('jiraProjectKey', jiraProjectKey);
+  }, [jiraInstanceUrl, jiraEmail, jiraToken, jiraProjectKey]);
+
 
   const analysisExamples = [
     { value: "5월에 해결된 이슈", label: "5월에 해결된 이슈" },
@@ -318,7 +338,7 @@ export default function Home() {
                 <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                        Jira API 토큰을 사용하여 실시간 데이터를 분석합니다. 입력된 정보는 어디에도 저장되지 않으므로 안심하고 사용하세요.
+                        Jira API 토큰을 사용하여 실시간 데이터를 분석합니다. 입력된 정보는 브라우저에 저장되어 다음 방문 시 자동으로 불러옵니다.
                     </AlertDescription>
                 </Alert>
                 <div className="space-y-2">
@@ -379,14 +399,14 @@ export default function Home() {
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                 <Command
                   filter={(value, search) => {
-                    if (value.includes(search)) return 1;
+                    if (value.toLowerCase().includes(search.toLowerCase())) return 1;
                     return 0;
                   }}
                 >
                   <CommandInput
                     placeholder="관점 검색 또는 직접 입력..."
-                    value={analysisPoint}
-                    onValueChange={setAnalysisPoint}
+                    value={inputValue}
+                    onValueChange={setInputValue}
                   />
                   <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
                   <CommandList>
@@ -396,7 +416,8 @@ export default function Home() {
                           key={example.value}
                           value={example.value}
                           onSelect={(currentValue) => {
-                            setAnalysisPoint(currentValue);
+                            setAnalysisPoint(analysisPoint === currentValue ? "" : currentValue);
+                            setInputValue(analysisPoint === currentValue ? "" : currentValue);
                             setPopoverOpen(false);
                           }}
                         >
@@ -525,5 +546,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
