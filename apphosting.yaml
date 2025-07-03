@@ -7,10 +7,6 @@ runConfig:
   maxInstances: 1
 
 env:
-  - variable: DUMMY_VAR
-    value: '1'
-    availability:
-      - RUNTIME
   - variable: GOOGLE_API_KEY
     secret: projects/dice-roller-duo-wyxgt/secrets/GOOGLE_API_KEY/versions/latest
     availability:
