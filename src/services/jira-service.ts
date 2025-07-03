@@ -66,12 +66,12 @@ export async function fetchJiraIssues(options: {
 
     } catch (error) {
         console.error("Jira API 연결 중 오류 발생:", error);
-        if (error instanceof Error && error.name === 'FetchError') {
-             throw new Error(`Jira 서버에 연결할 수 없습니다. URL('${apiUrl}')이 정확하고, 네트워크에서 접근 가능한지 확인해주세요.`);
+        if (error instanceof TypeError && error.message.includes('fetch failed')) {
+            throw new Error(`Jira 서버에 연결하지 못했습니다. 입력하신 URL(${cleanedUrl})이 정확한지, 그리고 앱 서버가 해당 주소로 네트워크 접근이 가능한지 확인해주세요 (방화벽, VPN 등).`);
         }
         if (error instanceof Error) {
             throw error;
         }
-        throw new Error('알 수 없는 오류로 Jira 서버에 연결할 수 없습니다.');
+        throw new Error('알 수 없는 오류로 Jira 서버에 연결하는 중 문제가 발생했습니다.');
     }
 }
