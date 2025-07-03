@@ -177,8 +177,7 @@ export default function Home() {
         stringifiedData = JSON.stringify(final_data);
       }
       
-      const finalAnalysisPoint = analysisPoint || inputValue;
-      const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint: finalAnalysisPoint });
+      const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint });
 
       const processedReport = {
           ...generatedReport,
@@ -319,7 +318,7 @@ export default function Home() {
                 <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                        Jira API 토큰을 사용하여 실시간 데이터를 분석합니다. 입력된 정보는 저장되지 않습니다.
+                        Jira API 토큰을 사용하여 실시간 데이터를 분석합니다. 입력된 정보는 어디에도 저장되지 않으므로 안심하고 사용하세요.
                     </AlertDescription>
                 </Alert>
                 <div className="space-y-2">
@@ -363,24 +362,13 @@ export default function Home() {
           </Tabs>
           <div className="mt-6 space-y-2">
             <Label htmlFor="analysis-point">분석 관점 (선택 사항)</Label>
-            <Popover
-                open={popoverOpen}
-                onOpenChange={(isOpen) => {
-                    setPopoverOpen(isOpen);
-                    if (!isOpen) {
-                        setAnalysisPoint(inputValue);
-                    }
-                }}
-            >
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={popoverOpen}
                   className="w-full justify-between font-normal text-left"
-                  onClick={() => {
-                    setInputValue(analysisPoint);
-                  }}
                 >
                   <span className="truncate">
                     {analysisPoint || "예시를 선택하거나 직접 입력하세요..."}
@@ -389,11 +377,16 @@ export default function Home() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                <Command>
+                <Command
+                  filter={(value, search) => {
+                    if (value.includes(search)) return 1;
+                    return 0;
+                  }}
+                >
                   <CommandInput
                     placeholder="관점 검색 또는 직접 입력..."
-                    value={inputValue}
-                    onValueValueChange={setInputValue}
+                    value={analysisPoint}
+                    onValueChange={setAnalysisPoint}
                   />
                   <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
                   <CommandList>
@@ -403,9 +396,7 @@ export default function Home() {
                           key={example.value}
                           value={example.value}
                           onSelect={(currentValue) => {
-                            const finalValue = currentValue === analysisPoint ? "" : currentValue;
-                            setAnalysisPoint(finalValue);
-                            setInputValue(finalValue);
+                            setAnalysisPoint(currentValue);
                             setPopoverOpen(false);
                           }}
                         >
@@ -534,3 +525,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
