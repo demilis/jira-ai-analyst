@@ -82,15 +82,7 @@ export default function Home() {
     setIsLoading(true);
     setReport(null);
 
-    if (activeTab === 'system') {
-        toast({
-            title: "기능 준비 중",
-            description: "Jira 계정 직접 연결 기능은 현재 개발 중입니다.",
-        });
-        setIsLoading(false);
-        return;
-    }
-
+    let stringifiedData: string;
     const jiraKeyRegex = /[A-Z][A-Z0-9_]+-\d+/;
 
     const filterData = (data: any[][]) => {
@@ -119,9 +111,21 @@ export default function Home() {
     };
 
     try {
-      let stringifiedData: string;
-
-      if (activeTab === 'file') {
+      if (activeTab === 'system') {
+          toast({
+              title: "시뮬레이션 모드",
+              description: "실제 Jira 연동은 구현되지 않았으며, 샘플 데이터로 리포트를 생성합니다.",
+          });
+          const mockSystemData = [
+              ["Issue Key", "Summary", "Assignee", "Status", "Created"],
+              ["PROJ-101", "[Backend] API 서버 성능 개선", "김개발", "In Progress", "2024-07-20"],
+              ["PROJ-102", "[Frontend] 로그인 페이지 UI 버그 수정", "이디자인", "Done", "2024-07-19"],
+              ["PROJ-103", "[DevOps] 테스트 서버 배포 자동화", "박운영", "To Do", "2024-07-21"],
+              ["PROJ-104", "[기획] 신규 기능 사용자 스토리 작성", "최기획", "Done", "2024-07-18"],
+              ["PROJ-105", "[Backend] 데이터베이스 스키마 변경", "김개발", "In Progress", "2024-07-22"]
+          ];
+          stringifiedData = JSON.stringify(mockSystemData);
+      } else if (activeTab === 'file') {
         if (!file) {
           toast({ variant: "destructive", title: "파일이 선택되지 않았습니다", description: "리포트를 생성할 Excel 파일을 선택해주세요." });
           setIsLoading(false);
@@ -168,8 +172,22 @@ export default function Home() {
         stringifiedData = JSON.stringify(final_data);
       }
       
-      const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint });
-      setReport(generatedReport);
+      const finalAnalysisPoint = analysisPoint || inputValue;
+      const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint: finalAnalysisPoint });
+
+      // Post-process to ensure summaries are not too long
+      const processedReport = {
+          ...generatedReport,
+          issueBreakdown: generatedReport.issueBreakdown.map(issue => ({
+              ...issue,
+              summary: issue.summary.length > 50 ? issue.summary.substring(0, 50) + '...' : issue.summary,
+              recommendation: issue.recommendation || "추천 없음",
+              assignee: issue.assignee || "담당자 없음",
+              status: issue.status || "상태 없음"
+          }))
+      };
+
+      setReport(processedReport);
 
     } catch (error) {
       console.error("Error generating report:", error);
@@ -301,7 +319,7 @@ export default function Home() {
                 <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                        Jira 계정 정보를 입력하면 실시간 데이터를 분석합니다. 정보는 저장되지 않습니다. (기능 준비 중)
+                        Jira 계정 정보를 입력하면 실시간 데이터를 분석합니다. (현재는 샘플 데이터로 동작합니다)
                     </AlertDescription>
                 </Alert>
                 <div className="space-y-2">
@@ -311,7 +329,6 @@ export default function Home() {
                         placeholder="user@example.com"
                         value={jiraId}
                         onChange={(e) => setJiraId(e.target.value)}
-                        disabled
                     />
                 </div>
                 <div className="space-y-2">
@@ -322,7 +339,6 @@ export default function Home() {
                         placeholder="보안을 위해 API 토큰 사용을 권장합니다."
                         value={jiraPassword}
                         onChange={(e) => setJiraPassword(e.target.value)}
-                        disabled
                     />
                 </div>
             </TabsContent>
@@ -334,7 +350,6 @@ export default function Home() {
                 onOpenChange={(isOpen) => {
                     setPopoverOpen(isOpen);
                     if (!isOpen) {
-                        // When closing, commit the temporary input value to the final state.
                         setAnalysisPoint(inputValue);
                     }
                 }}
@@ -346,8 +361,6 @@ export default function Home() {
                   aria-expanded={popoverOpen}
                   className="w-full justify-between font-normal text-left"
                   onClick={() => {
-                    // When opening, reset the temporary input value to the last committed value.
-                    // This allows users to re-open and see the full list again.
                     setInputValue(analysisPoint);
                   }}
                 >
@@ -362,7 +375,7 @@ export default function Home() {
                   <CommandInput
                     placeholder="관점 검색 또는 직접 입력..."
                     value={inputValue}
-                    onValueChange={setInputValue}
+                    onValueValueChange={setInputValue}
                   />
                   <CommandEmpty>검색 결과가 없습니다.</CommandEmpty>
                   <CommandList>
