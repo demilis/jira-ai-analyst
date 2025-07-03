@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { generateJiraReport, type JiraReportOutput } from "@/ai/flows/jira-report-flow";
+import { fetchJiraIssues } from "@/services/jira-service";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2, FileUp, Clipboard, Check, FileText, Server, AlertTriangle, ChevronsUpDown, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -30,14 +31,14 @@ import { PieChart, Pie, Cell, Tooltip } from "recharts";
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [textInput, setTextInput] = useState("");
-  const [jiraId, setJiraId] = useState("");
-  const [jiraPassword, setJiraPassword] = useState("");
+  const [jiraInstanceUrl, setJiraInstanceUrl] = useState("");
+  const [jiraEmail, setJiraEmail] = useState("");
+  const [jiraToken, setJiraToken] = useState("");
+  const [jiraProjectKey, setJiraProjectKey] = useState("");
   
-  // --- Start of Combobox State Fix ---
-  const [analysisPoint, setAnalysisPoint] = useState(""); // This is the final, committed value
+  const [analysisPoint, setAnalysisPoint] = useState(""); 
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(""); // This is the temporary value for the input/search field
-  // --- End of Combobox State Fix ---
+  const [inputValue, setInputValue] = useState(""); 
 
   const [activeTab, setActiveTab] = useState("file");
   const [report, setReport] = useState<JiraReportOutput | null>(null);
@@ -65,8 +66,6 @@ export default function Home() {
       if (selectedFile.type.includes("sheet") || selectedFile.name.endsWith(".xlsx") || selectedFile.name.endsWith(".xls")) {
         setFile(selectedFile);
         setTextInput("");
-        setJiraId("");
-        setJiraPassword("");
         setReport(null);
       } else {
         toast({
@@ -112,19 +111,25 @@ export default function Home() {
 
     try {
       if (activeTab === 'system') {
-          toast({
-              title: "시뮬레이션 모드",
-              description: "실제 Jira 연동은 구현되지 않았으며, 샘플 데이터로 리포트를 생성합니다.",
+          const issueDataArray = await fetchJiraIssues({
+              instanceUrl: jiraInstanceUrl,
+              email: jiraEmail,
+              apiToken: jiraToken,
+              projectKey: jiraProjectKey,
           });
-          const mockSystemData = [
-              ["Issue Key", "Summary", "Assignee", "Status", "Created"],
-              ["PROJ-101", "[Backend] API 서버 성능 개선", "김개발", "In Progress", "2024-07-20"],
-              ["PROJ-102", "[Frontend] 로그인 페이지 UI 버그 수정", "이디자인", "Done", "2024-07-19"],
-              ["PROJ-103", "[DevOps] 테스트 서버 배포 자동화", "박운영", "To Do", "2024-07-21"],
-              ["PROJ-104", "[기획] 신규 기능 사용자 스토리 작성", "최기획", "Done", "2024-07-18"],
-              ["PROJ-105", "[Backend] 데이터베이스 스키마 변경", "김개발", "In Progress", "2024-07-22"]
-          ];
-          stringifiedData = JSON.stringify(mockSystemData);
+
+          if (issueDataArray.length < 2) { // header + at least one row
+              toast({
+                  variant: 'destructive',
+                  title: 'Jira에서 이슈를 가져오지 못했습니다.',
+                  description: '프로젝트 키가 올바른지, 해당 프로젝트에 접근 권한이 있는지 확인해주세요.',
+              });
+              setIsLoading(false);
+              return;
+          }
+
+          stringifiedData = JSON.stringify(issueDataArray);
+
       } else if (activeTab === 'file') {
         if (!file) {
           toast({ variant: "destructive", title: "파일이 선택되지 않았습니다", description: "리포트를 생성할 Excel 파일을 선택해주세요." });
@@ -175,7 +180,6 @@ export default function Home() {
       const finalAnalysisPoint = analysisPoint || inputValue;
       const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint: finalAnalysisPoint });
 
-      // Post-process to ensure summaries are not too long
       const processedReport = {
           ...generatedReport,
           issueBreakdown: generatedReport.issueBreakdown.map(issue => ({
@@ -254,8 +258,6 @@ export default function Home() {
               setActiveTab(newTab);
               setFile(null);
               setTextInput('');
-              setJiraId('');
-              setJiraPassword('');
               setReport(null);
             }} 
             className="w-full"
@@ -298,8 +300,6 @@ export default function Home() {
                     onChange={(e) => {
                         setTextInput(e.target.value);
                         setFile(null);
-                        setJiraId("");
-                        setJiraPassword("");
                     }}
                 />
                 {textInput && (
@@ -319,26 +319,44 @@ export default function Home() {
                 <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                        Jira 계정 정보를 입력하면 실시간 데이터를 분석합니다. (현재는 샘플 데이터로 동작합니다)
+                        Jira API 토큰을 사용하여 실시간 데이터를 분석합니다. 입력된 정보는 저장되지 않습니다.
                     </AlertDescription>
                 </Alert>
                 <div className="space-y-2">
-                    <Label htmlFor="jira-id">Jira 아이디 (이메일)</Label>
+                    <Label htmlFor="jira-instance-url">Jira 인스턴스 URL</Label>
                     <Input
-                        id="jira-id"
-                        placeholder="user@example.com"
-                        value={jiraId}
-                        onChange={(e) => setJiraId(e.target.value)}
+                        id="jira-instance-url"
+                        placeholder="https://your-company.atlassian.net"
+                        value={jiraInstanceUrl}
+                        onChange={(e) => setJiraInstanceUrl(e.target.value)}
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="jira-password">Jira 비밀번호 (또는 API 토큰)</Label>
+                    <Label htmlFor="jira-email">Jira 이메일 (토큰 발급 계정)</Label>
                     <Input
-                        id="jira-password"
+                        id="jira-email"
+                        placeholder="user@example.com"
+                        value={jiraEmail}
+                        onChange={(e) => setJiraEmail(e.target.value)}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="jira-token">Jira API 토큰</Label>
+                    <Input
+                        id="jira-token"
                         type="password"
-                        placeholder="보안을 위해 API 토큰 사용을 권장합니다."
-                        value={jiraPassword}
-                        onChange={(e) => setJiraPassword(e.target.value)}
+                        placeholder="API 토큰을 입력하세요"
+                        value={jiraToken}
+                        onChange={(e) => setJiraToken(e.target.value)}
+                    />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="jira-project-key">Jira 프로젝트 키</Label>
+                    <Input
+                        id="jira-project-key"
+                        placeholder="예: PROJ"
+                        value={jiraProjectKey}
+                        onChange={(e) => setJiraProjectKey(e.target.value)}
                     />
                 </div>
             </TabsContent>
@@ -385,7 +403,7 @@ export default function Home() {
                           key={example.value}
                           value={example.value}
                           onSelect={(currentValue) => {
-                            const finalValue = currentValue === inputValue ? "" : currentValue;
+                            const finalValue = currentValue === analysisPoint ? "" : currentValue;
                             setAnalysisPoint(finalValue);
                             setInputValue(finalValue);
                             setPopoverOpen(false);
@@ -418,7 +436,7 @@ export default function Home() {
                 isLoading || 
                 (activeTab === 'file' && !file) || 
                 (activeTab === 'text' && !textInput.trim()) ||
-                (activeTab === 'system' && (!jiraId || !jiraPassword))
+                (activeTab === 'system' && (!jiraInstanceUrl || !jiraEmail || !jiraToken || !jiraProjectKey))
             }
             className="w-full"
           >
