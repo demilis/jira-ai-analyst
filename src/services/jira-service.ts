@@ -3,8 +3,10 @@
 
 /**
  * @fileOverview A service to fetch data from the Jira API.
+ * This file contains the function responsible for making the actual network request
+ * to the Jira REST API to retrieve issue data.
  * 
- * - fetchJiraIssues - Fetches issues from a Jira instance using the REST API.
+ * - fetchJiraIssues - Constructs and sends the request to the Jira search endpoint ('/rest/api/2/search').
  */
 
 export async function fetchJiraIssues(options: {
