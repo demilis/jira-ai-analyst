@@ -1,11 +1,13 @@
 
 'use server';
 /**
- * @fileOverview An AI agent that analyzes Jira issues from an Excel export and generates a summary report.
+ * @fileOverview Jira 데이터를 분석하여 종합 리포트를 생성하는 AI 에이전트입니다.
+ * 이 파일은 앱의 '뇌' 역할을 하며, `jira-service`를 통해 가져온 원본 데이터를
+ * 지능적으로 분석하고, 요약하며, 실행 가능한 인사이트를 생성합니다.
  *
- * - generateJiraReport - A function that takes Jira issue data and returns a structured report.
- * - JiraReportInput - The input type for the generateJiraReport function.
- * - JiraReportOutput - The return type for the generateJiraReport function.
+ * - generateJiraReport - 클라이언트에서 호출하는 메인 함수입니다.
+ * - JiraReportInput - AI 분석을 위한 입력 데이터의 타입 정의입니다.
+ * - JiraReportOutput - AI가 최종적으로 생성하는 리포트의 타입 정의입니다.
  */
 
 import { ai } from '@/ai/genkit';
