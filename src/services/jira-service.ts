@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -18,6 +19,21 @@ export async function fetchJiraIssues(options: {
     projectKey: string;
 }): Promise<string[][]> {
     const { instanceUrl, email, apiToken, projectKey } = options;
+
+    // --- 입력 값 검증을 위한 서버 측 로그 ---
+    console.log("\n--- [Jira Service] Received input for verification ---");
+    console.log(`- Instance URL: ${instanceUrl}`);
+    console.log(`- Email: ${email}`);
+    // 보안을 위해 토큰은 일부만 로그에 남깁니다.
+    if (apiToken && apiToken.length > 5) {
+        console.log(`- API Token: ${apiToken.substring(0, 3)}...${apiToken.substring(apiToken.length - 3)} (Length: ${apiToken.length})`);
+    } else {
+        console.log("- API Token: (Not provided or too short)");
+    }
+    console.log(`- Project Key: ${projectKey}`);
+    console.log("-----------------------------------------------------\n");
+    // --- 로그 끝 ---
+
 
     if (!instanceUrl || !email || !apiToken || !projectKey) {
         throw new Error('Jira 인스턴스 URL, 이메일, API 토큰, 프로젝트 키를 모두 입력해주세요.');
@@ -54,7 +70,7 @@ export async function fetchJiraIssues(options: {
             console.error(`Jira API Error Response (Status: ${response.status}):`, errorBody);
 
             let userMessage = `Jira API 요청 실패 (상태 코드: ${response.status}).\n`;
-            userMessage += `Jira 서버 응답: ${errorBody.substring(0, 200)}...\n\n`;
+            userMessage += `Jira 서버 응답: ${errorBody.substring(0, 300)}...\n\n`;
 
             if (response.status === 401 || response.status === 403) {
                  userMessage += '인증 실패. Jira 이메일 또는 API 토큰이 올바른지 확인해주세요.';
@@ -92,6 +108,9 @@ export async function fetchJiraIssues(options: {
     } catch (error) {
         console.error("Jira API 연결 중 전체 오류 발생:", error);
         if (error instanceof Error && error.name === 'TimeoutError') {
+             throw new Error(`Jira 서버(${instanceUrl}) 연결 시간 초과. 서버가 응답하지 않거나 네트워크 연결(VPN 포함)이 매우 느립니다.`);
+        }
+        if (error instanceof TypeError && (error.cause as any)?.code === 'UND_ERR_REQ_TIMEOUT') {
              throw new Error(`Jira 서버(${instanceUrl}) 연결 시간 초과. 서버가 응답하지 않거나 네트워크 연결(VPN 포함)이 매우 느립니다.`);
         }
         if (error instanceof TypeError) {
