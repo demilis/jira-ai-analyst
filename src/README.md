@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 
-**Jira AI Analyst**는 Jira API를 통해 실시간 데이터를 직접 분석하여, AI가 자동으로 핵심 내용을 요약하고 실행 가능한 조치 항목을 제안해주는 웹 애플리케이션입니다. 복잡한 이슈 목록을 빠르게 파악하고 프로젝트의 병목 현상이나 중요한 트렌드를 발견하는 데 도움을 줍니다.
+**Jira AI Analyst**는 Jira API를 통해 실시간 데이터를 직접 분석하여, AI가 자동으로 핵심 내용을 요약하고 실행 가능한 조치 항목을 제안해주는 웹 애플리케케이션입니다. 복잡한 이슈 목록을 빠르게 파악하고 프로젝트의 병목 현상이나 중요한 트렌드를 발견하는 데 도움을 줍니다.
 
 ## 주요 기능
 
@@ -56,65 +56,103 @@ MCP는 거창한 기술이 아니라, **우리 앱이 AI에게 원하는 작업�
 - **UI:** ShadCN, Tailwind CSS
 - **AI:** Genkit, Google Gemini
 
-## 프로젝트 소스 코드 다운로드 (로컬 개발 준비)
+## 로컬 개발 환경 설정
 
-Firebase 환경에서 개발 중인 소스 코드를 당신의 PC로 가져와야 로컬 실행이 가능합니다. 이 과정은 보통 Git이라는 버전 관리 시스템을 통해 이루어집니다.
+### 1단계: Git 및 Node.js 설치
+- **Git:** 아직 없다면, [Git 공식 웹사이트](https://git-scm.com/downloads)에서 설치하세요.
+- **Node.js:** 버전 18 이상이 필요합니다. [Node.js 공식 웹사이트](https://nodejs.org/)에서 LTS 버전을 설치하세요.
 
-### 1단계: Git 설치
-만약 당신의 PC에 Git이 설치되어 있지 않다면, 먼저 설치해야 합니다.
-- [공식 Git 웹사이트](https://git-scm.com/downloads)로 이동하여 당신의 운영체제(Windows, Mac 등)에 맞는 버전을 다운로드하고 설치하세요.
-
-### 2단계: 소스 코드 주소(URL) 찾기
-이 프로젝트의 소스 코드가 저장된 원격 저장소(예: GitHub, GitLab)의 주소가 필요합니다.
-- 보통 프로젝트의 GitHub 페이지에 방문하면, 초록색 **`< > Code`** 버튼이 있습니다.
-- 이 버튼을 누르면 나오는 `HTTPS` 주소를 복사하세요. 이 주소가 바로 당신이 사용할 소스 코드 주소입니다.
-
-### 3단계: 소스 코드 다운로드 (Clone)
-이제 터미널(명령 프롬프트 또는 PowerShell)을 열고, 코드를 저장하고 싶은 폴더로 이동한 뒤 아래 명령어를 실행하세요.
+### 2단계: 프로젝트 소스 코드 다운로드 (Clone)
+터미널을 열고 코드를 저장할 폴더로 이동한 뒤, 아래 명령어를 실행하여 원격 저장소의 코드를 복제합니다. (아래 URL은 예시입니다.)
 
 ```bash
-git clone 복사한_주소를_여기에_붙여넣으세요
+git clone https://github.com/your-username/jira-ai-analyst.git
+cd jira-ai-analyst
 ```
 
-예를 들어, 주소가 `https://github.com/user/jira-ai-analyst.git` 라면 아래와 같이 입력합니다.
+### 3단계: 필수 패키지 설치
+프로젝트 폴더 안에서 다음 명령어를 실행하여 필요한 모든 라이브러리를 설치합니다.
+
 ```bash
-git clone https://github.com/user/jira-ai-analyst.git
+npm install
 ```
-명령을 실행하면 현재 위치에 `jira-ai-analyst` 라는 이름의 폴더가 생성되고, 그 안에 모든 소스 코드가 다운로드됩니다. 이제 `cd jira-ai-analyst` 명령어로 폴더에 들어간 후, 다음 단계인 '로컬에서 실행하기'를 계속 진행할 수 있습니다.
 
-## 로컬에서 실행하기 (내부망 Jira 접속용)
+### 4단계: 환경 변수 설정
+로컬 환경에서 앱을 실행하려면, Jira 접속 정보와 Google AI API 키를 설정해야 합니다.
 
-만약 분석하려는 Jira 서버가 회사 내부망(VPN)에서만 접근 가능한 경우(예: `http://jira.company.com`), **반드시 당신의 PC(로컬 환경)에서 직접 앱을 실행해야 합니다.** 이 앱에는 내부망 접속을 위한 프록시 기능이 내장되어 있습니다.
+1.  프로젝트의 최상위 폴더에 `.env.local` 이라는 파일을 새로 만드세요.
+2.  아래 내용을 복사하여 파일에 붙여넣고, 각 항목에 맞는 실제 값으로 변경하세요.
 
-### 사전 준비
-1.  **Node.js 설치:** PC에 Node.js (버전 18 이상)가 설치되어 있어야 합니다.
-2.  **Google AI API 키 발급:** [Google AI Studio](https://aistudio.google.com/app/apikey?hl=ko)에서 API 키를 발급받으세요.
-3.  **VPN 연결:** 회사 내부망 Jira에 접속해야 하므로, 반드시 VPN에 먼저 연결하세요.
-
-### 실행 절차
-1.  **프록시 설정 확인:**
-    *   프로젝트의 `next.config.ts` 파일을 열어 `rewrites` 설정을 확인하세요.
-    *   `destination` 주소가 당신이 접속하려는 내부 Jira 서버 주소(예: `'http://jira.lge.com/:path*'`)가 맞는지 확인하고, 다르다면 수정해주세요.
-2.  **프로젝트 폴더 열기:** 터미널을 열고 이 프로젝트 폴더로 이동하세요.
-3.  **필요한 패키지 설치:**
-    ```bash
-    npm install
-    ```
-4.  **환경 변수 파일 설정:**
-    *   프로젝트 최상위 폴더에 `.env.local` 파일을 만드세요.
-    *   파일을 열고, 발급받은 Google AI API 키를 아래 형식으로 추가 후 저장하세요. 로컬 서버 주소도 함께 추가합니다.
     ```
     # Google AI API 키
+    # Google AI Studio에서 발급받으세요: https://aistudio.google.com/app/apikey
     GOOGLE_API_KEY=여기에_당신의_API_키를_붙여넣으세요
 
-    # 로컬 개발 서버 주소
+    # 로컬 개발 서버 주소 (보통 이 값을 수정할 필요는 없습니다)
     NEXT_PUBLIC_APP_URL=http://localhost:3000
     ```
-5.  **앱 실행:**
+    **중요:** `.env.local` 파일은 민감한 정보를 담고 있으므로, Git에 절대 업로드하면 안 됩니다. (`.gitignore` 파일에 이미 등록되어 있습니다.)
+
+## 로컬에서 실행하기
+
+사내망/VPN 등 내부 네트워크에서만 접속 가능한 Jira 서버를 분석하려면, 반드시 로컬 PC에서 앱을 실행해야 합니다.
+
+### 1단계: VPN 연결
+먼저, 분석하려는 Jira 서버에 접속할 수 있도록 회사 VPN에 연결하세요.
+
+### 2단계: 프록시 설정 확인
+`next.config.ts` 파일을 열어 `rewrites` 설정을 확인하고, `destination` 주소가 당신이 사용하려는 내부 Jira 서버 주소와 일치하는지 확인하거나 수정하세요.
+
+```ts
+// next.config.ts 예시
+// ...
+  async rewrites() {
+    return [
+      {
+        source: '/api/jira/:path*',
+        // 목적지 Jira 서버 주소를 여기에 입력하세요
+        destination: 'http://jira.company.com/:path*',
+      },
+    ]
+  },
+// ...
+```
+
+### 3단계: 개발 서버 실행
+터미널에서 아래 명령어를 실행하면 로컬 개발 서버가 시작됩니다.
+
+```bash
+npm run dev
+```
+
+이제 웹 브라우저에서 `http://localhost:3000` 주소로 접속하여 앱을 사용할 수 있습니다.
+
+## Git 저장소에 업로드하기
+
+만약 이 프로젝트를 당신의 GitHub 계정에 새로운 저장소로 만들고 싶다면, 아래 절차를 따르세요.
+
+1.  **GitHub에서 새 저장소 생성:**
+    *   [GitHub](https://github.com/new)로 이동하여 `jira-ai-analyst`와 같은 이름으로 새로운 저장소(repository)를 만듭니다. **"Add a README file" 옵션은 선택하지 마세요.**
+2.  **로컬 프로젝트와 원격 저장소 연결:**
+    *   터미널에서 프로젝트 폴더로 이동한 뒤, 아래 명령어들을 순서대로 실행하세요. `your-username`과 `your-repository-name`은 당신의 정보에 맞게 수정해야 합니다.
     ```bash
-    npm run dev
+    # 1. 로컬 저장소 초기화 (아직 Git 저장소가 아니라면)
+    git init -b main
+
+    # 2. 모든 파일을 Staging 영역에 추가
+    git add -A
+
+    # 3. 첫 번째 커밋 생성
+    git commit -m "Initial commit"
+
+    # 4. 원격 저장소 주소 등록
+    git remote add origin https://github.com/your-username/your-repository-name.git
+
+    # 5. 원격 저장소로 코드 푸시(업로드)
+    git push -u origin main
     ```
-6.  **앱 접속:** 웹 브라우저를 열고 `http://localhost:3000` 주소로 접속하세요. 이제 앱 UI에서 Jira 정보를 입력하고 리포트를 생성하면, 프록시가 자동으로 내부 Jira 서버와 통신합니다.
+
+이제 당신의 코드가 GitHub 저장소에 안전하게 보관되었습니다.
 
 ## 배포 가이드 (Firebase App Hosting)
 
