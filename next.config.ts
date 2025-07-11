@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/jira/:path*',
+        destination: 'http://jira.lge.com/:path*', // This is the proxy destination
+      },
+    ]
+  },
 };
 
 export default nextConfig;
