@@ -106,7 +106,7 @@ git clone https://github.com/user/jira-ai-analyst.git
     ```bash
     npm run dev
     ```
-5.  **앱 접속:** 웹 브라우저를 열고 `http://localhost:9002` 주소로 접속하세요. 이제 앱이 당신의 PC에서 실행되므로, 회사 내부 Jira 서버에도 정상적으로 접근할 수 있습니다.
+5.  **앱 접속:** 웹 브라우저를 열고 `http://localhost:3000` 주소로 접속하세요. 이제 앱이 당신의 PC에서 실행되므로, 회사 내부 Jira 서버에도 정상적으로 접근할 수 있습니다.
 
 ## 배포 가이드 (Firebase App Hosting)
 
