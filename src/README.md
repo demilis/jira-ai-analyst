@@ -108,23 +108,25 @@ npm install
 
 ## 로컬에서 실행하기 (내부망 Jira 접속용)
 
-사내망/VPN 등 내부 네트워크에서만 접속 가능한 Jira 서버를 분석하려면, 반드시 로컬 PC에서 앱을 실행해야 합니다.
+사내망/VPN 등 내부 네트워크에서만 접속 가능한 Jira 서버를 분석하려면, **반드시 로컬 PC에서 앱을 실행해야 합니다.**
 
 ### 1단계: VPN 연결
 먼저, 분석하려는 Jira 서버에 접속할 수 있도록 회사 VPN에 연결하세요.
 
-### 2단계: 프록시 설정 확인
-`next.config.ts` 파일을 열어 `rewrites` 설정을 확인하고, `destination` 주소가 당신이 사용하려는 내부 Jira 서버 주소와 일치하는지 확인하거나 수정하세요.
+### 2단계: 프록시 설정 수정 (가장 중요!)
+`next.config.ts` 파일을 열어 `rewrites` 설정을 확인하고, **`destination` 주소를 당신이 사용하려는 실제 내부 Jira 서버 주소로 반드시 수정해야 합니다.**
 
-```ts
+```typescript
 // next.config.ts 예시
 // ...
   async rewrites() {
     return [
       {
         source: '/api/jira/:path*',
-        // 목적지 Jira 서버 주소를 여기에 입력하세요
-        destination: 'http://jira.company.com/:path*',
+        // 중요: 아래 주소를 당신의 실제 Jira 서버 주소로 변경하세요!
+        // 예시 1: https://my-jira.my-company.com:8080/:path*
+        // 예시 2: http://192.168.1.100/jira/:path*
+        destination: 'http://jira.lge.com/:path*',
       },
     ]
   },
