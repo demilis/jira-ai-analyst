@@ -22,7 +22,10 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/jira/:path*',
-        destination: 'http://jira.lge.com/:path*', // This is the proxy destination
+        // 중요: 이 주소는 로컬 개발 환경에서만 사용되는 프록시 설정입니다.
+        // 당신의 내부 Jira 서버 주소로 변경해야 합니다.
+        // 예: 'https://your-company.atlassian.net/:path*'
+        destination: 'http://jira.lge.com/:path*', 
       },
     ]
   },

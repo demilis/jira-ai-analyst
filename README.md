@@ -113,18 +113,18 @@ npm install
 ### 1단계: VPN 연결
 먼저, 분석하려는 Jira 서버에 접속할 수 있도록 회사 VPN에 연결하세요.
 
-### 2단계: 프록시 설정 확인
-`next.config.ts` 파일을 열어 `rewrites` 설정을 확인하고, `destination` 주소가 당신이 사용하려는 내부 Jira 서버 주소와 일치하는지 확인하거나 수정하세요.
+### 2단계: 프록시 설정 확인 및 수정
+`next.config.ts` 파일을 열어 `rewrites` 설정을 확인하고, `destination` 주소가 **당신이 접속하려는 내부 Jira 서버 주소와 일치하는지 반드시 확인하고 수정해야 합니다.**
 
-```ts
+```typescript
 // next.config.ts 예시
 // ...
   async rewrites() {
     return [
       {
         source: '/api/jira/:path*',
-        // 목적지 Jira 서버 주소를 여기에 입력하세요
-        destination: 'http://jira.company.com/:path*',
+        // 중요: 이 주소를 당신의 실제 Jira 서버 주소로 변경하세요.
+        destination: 'https://your-jira-instance.com/:path*', 
       },
     ]
   },
