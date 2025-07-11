@@ -133,7 +133,7 @@ Next.js의 프록시 기능은 우리 앱을 위한 '똑똑한 비서'처럼 작
         // 중요: 아래 주소를 당신의 실제 Jira 서버 주소로 변경하세요!
         // 예시 1: https://my-jira.my-company.com:8080/jira/:path*
         // 예시 2: http://192.168.1.100/jira/:path*
-        destination: 'http://jira.lge.com/:path*', 
+        destination: 'http://jira.lge.com/issue/:path*', 
       },
     ]
   },
@@ -170,9 +170,15 @@ npm run dev
         5.  `next.config.ts`의 `destination` 값을 찾은 주소 뒤에 `:path*`를 붙여 수정합니다.
             -   `destination: 'http://jira.mycompany.com/jira/:path*'`
 
--   **`401/403 ... 인증 실패`**:
-    -   **원인:** Jira 서버에 연결은 되었지만, 인증 정보가 틀렸습니다.
-    -   **해결책:** 앱 화면에 입력한 Jira 이메일과 API 토큰이 정확한지 확인하세요.
+-   **`401 Unauthorized` 또는 `403 Forbidden` (인증 실패)**:
+    -   **원인:** Jira 서버에 연결은 성공했지만, 인증 정보가 틀렸습니다. **이것은 비밀번호가 아닌 API 토큰 문제입니다.**
+    -   **해결책: 새로운 Jira API 토큰 발급받기**
+        1.  Jira API는 더 이상 계정 비밀번호를 사용하지 않고, **보안을 위해 전용 API 토큰**을 사용합니다.
+        2.  [Atlassian API 토큰 관리 페이지](https://id.atlassian.com/manage-profile/security/api-tokens)로 이동하여 로그인하세요.
+        3.  **[Create API token]** 버튼을 클릭합니다.
+        4.  토큰 이름(Label)을 입력하고(예: `my-ai-app`) **[Create]**를 누릅니다.
+        5.  생성된 토큰을 **[Copy]** 버튼으로 복사한 뒤, **앱 화면의 "Jira API 토큰" 입력란에 정확히 붙여넣으세요.** 이 창을 닫으면 토큰을 다시 볼 수 없으니 주의하세요.
+        6.  이메일 주소도 올바른지 다시 확인합니다.
 
 -   **`시간 초과(Timeout) 오류`**:
     -   **원인:** `destination` 주소는 맞지만 서버가 응답이 없거나 네트워크가 매우 느린 경우입니다.
