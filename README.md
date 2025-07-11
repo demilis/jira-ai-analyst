@@ -131,7 +131,7 @@ Next.js의 프록시 기능은 우리 앱을 위한 '똑똑한 비서'처럼 작
       {
         source: '/api/jira/:path*',
         // 중요: 아래 주소를 당신의 실제 Jira 서버 주소로 변경하세요!
-        // 예시 1: https://my-jira.my-company.com:8080/jira/:path*
+        // 예시 1: https://my-jira.my-company.com/jira/:path*
         // 예시 2: http://192.168.1.100/jira/:path*
         destination: 'http://jira.lge.com/issue/:path*', 
       },
@@ -172,17 +172,40 @@ npm run dev
 
 -   **`401 Unauthorized` 또는 `403 Forbidden` (인증 실패)**:
     -   **원인:** Jira 서버에 연결은 성공했지만, 인증 정보가 틀렸습니다. **이것은 비밀번호가 아닌 API 토큰 문제입니다.**
-    -   **해결책: 새로운 Jira API 토큰 발급받기**
-        1.  Jira API는 더 이상 계정 비밀번호를 사용하지 않고, **보안을 위해 전용 API 토큰**을 사용합니다.
-        2.  [Atlassian API 토큰 관리 페이지](https://id.atlassian.com/manage-profile/security/api-tokens)로 이동하여 로그인하세요.
-        3.  **[Create API token]** 버튼을 클릭합니다.
-        4.  토큰 이름(Label)을 입력하고(예: `my-ai-app`) **[Create]**를 누릅니다.
-        5.  생성된 토큰을 **[Copy]** 버튼으로 복사한 뒤, **앱 화면의 "Jira API 토큰" 입력란에 정확히 붙여넣으세요.** 이 창을 닫으면 토큰을 다시 볼 수 없으니 주의하세요.
-        6.  이메일 주소도 올바른지 다시 확인합니다.
+    -   **해결책: 아래의 "최종 점검 가이드"를 따라 새로운 Jira API 토큰을 발급받으세요.**
 
 -   **`시간 초과(Timeout) 오류`**:
     -   **원인:** `destination` 주소는 맞지만 서버가 응답이 없거나 네트워크가 매우 느린 경우입니다.
     -   **해결책:** 잠시 후 다시 시도하거나, 회사 네트워크 관리자에게 문의하세요.
+
+### **401 인증 실패: 최종 점검 가이드**
+
+`401 Unauthorized` 오류가 계속 발생한다면, 다음 단계를 순서대로 꼼꼼히 따라해 주세요. 이 문제는 코드 문제가 아니라, 100% 앱에 입력된 정보의 문제입니다.
+
+#### **1단계: 새로운 API 토큰 발급 (가장 확실한 해결책)**
+
+기존 토큰이 잘못되었을 가능성이 가장 높습니다. 깔끔하게 새 토큰을 발급받아 문제를 해결하세요.
+
+1.  [Atlassian API 토큰 관리 페이지](https://id.atlassian.com/manage-profile/security/api-tokens)로 이동하여 로그인합니다.
+2.  **[Create API token]** 버튼을 클릭합니다.
+3.  토큰 이름(Label)을 입력합니다. (예: `my-new-ai-app`)
+4.  **[Create]** 버튼을 누릅니다.
+5.  **가장 중요:** 생성된 토큰 옆의 **복사 아이콘**을 클릭하여 토큰 전체를 정확하게 복사합니다. **이 창을 닫으면 토큰을 다시 볼 수 없으니 주의하세요.**
+    ![Copy Token](https://images.ctfassets.net/zporfybfyve1/39Sog4xS60j0s0s9vO4qfA/a6b291a182b3d30a0ef1f7a08b634d53/copy-new-token.png)
+6.  앱 화면의 "Jira API 토큰" 입력란에 **방금 복사한 새 토큰을 붙여넣으세요.**
+
+#### **2단계: Jira 이메일 주소 확인**
+
+-   API 토큰을 발급받은 계정의 이메일 주소를 앱에 정확히 입력했는지 확인하세요.
+-   [Atlassian 프로필 페이지](https://id.atlassian.com/manage-profile)에서 이메일 주소를 다시 한번 확인할 수 있습니다.
+
+#### **3단계: 최종 입력 및 재시도**
+
+-   앱 화면의 모든 입력 필드를 한번 지우고, 처음부터 다시 입력해 보세요. (특히, 이메일과 토큰)
+-   다시 "리포트 생성하기" 버튼을 눌러보세요.
+
+> **그래도 문제가 해결되지 않는다면?**
+> 매우 드물지만, 회사 보안 정책에 따라 관리자가 API 토큰을 통한 접근을 막아두었을 수도 있습니다. 이 경우, 사내 IT 지원팀이나 Jira 관리자에게 문의하여 "REST API를 통한 외부 접근이 허용되어 있는지" 확인해 보시는 것이 좋습니다.
 
 ## Git 저장소에 업로드하기
 
