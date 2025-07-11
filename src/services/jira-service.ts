@@ -13,30 +13,29 @@
  */
 
 export async function fetchJiraIssues(options: {
-    instanceUrl: string; 
-    email: string;
-    apiToken: string;
     projectKey: string;
 }): Promise<string[][]> {
-    const { instanceUrl, email, apiToken, projectKey } = options;
+    const { projectKey } = options;
 
-    // --- 입력 값 검증을 위한 서버 측 로그 ---
-    console.log("\n--- [Jira Service] Received input for verification ---");
-    console.log(`- Instance URL: ${instanceUrl}`);
-    console.log(`- Email: ${email}`);
-    // 보안을 위해 토큰은 일부만 로그에 남깁니다.
-    if (apiToken && apiToken.length > 5) {
-        console.log(`- API Token: ${apiToken.substring(0, 3)}...${apiToken.substring(apiToken.length - 3)} (Length: ${apiToken.length})`);
-    } else {
-        console.log("- API Token: (Not provided or too short)");
-    }
-    console.log(`- Project Key: ${projectKey}`);
+    const email = process.env.JIRA_EMAIL;
+    const apiToken = process.env.JIRA_API_TOKEN;
+    const instanceUrl = process.env.JIRA_INSTANCE_URL;
+
+    // --- 서버 측 환경 변수 검증을 위한 로그 ---
+    console.log("\n--- [Jira Service] Loading credentials from server environment ---");
+    console.log(`- Instance URL: ${instanceUrl ? 'Loaded' : 'Not Found!'}`);
+    console.log(`- Email: ${email ? 'Loaded' : 'Not Found!'}`);
+    console.log(`- API Token: ${apiToken ? 'Loaded' : 'Not Found!'}`);
+    console.log(`- Project Key from UI: ${projectKey}`);
     console.log("-----------------------------------------------------\n");
     // --- 로그 끝 ---
 
+    if (!instanceUrl || !email || !apiToken) {
+        throw new Error('서버 환경 변수(JIRA_INSTANCE_URL, JIRA_EMAIL, JIRA_API_TOKEN)가 설정되지 않았습니다. .env.local 파일을 확인하세요.');
+    }
 
-    if (!instanceUrl || !email || !apiToken || !projectKey) {
-        throw new Error('Jira 인스턴스 URL, 이메일, API 토큰, 프로젝트 키를 모두 입력해주세요.');
+    if (!projectKey) {
+        throw new Error('Jira 프로젝트 키를 입력해주세요.');
     }
     
     // Construct the absolute URL for the fetch request.
@@ -61,7 +60,6 @@ export async function fetchJiraIssues(options: {
                 maxResults: 100, 
                 fields: ["summary", "status", "assignee", "created", "resolutiondate"]
             }),
-            // 네트워크 문제를 진단하기 위해 타임아웃을 추가합니다.
             signal: AbortSignal.timeout(15000) // 15초
         });
 
@@ -70,12 +68,11 @@ export async function fetchJiraIssues(options: {
             console.error(`Jira API Error Response (Status: ${response.status}):`, errorBody);
 
             let userMessage = `Jira API 요청 실패 (상태 코드: ${response.status}).\n`;
-            userMessage += `Jira 서버 응답: ${errorBody.substring(0, 300)}...\n\n`;
 
             if (response.status === 401 || response.status === 403) {
-                 userMessage += '인증 실패. Jira 이메일 또는 API 토큰이 올바른지 확인해주세요.';
+                 userMessage += '인증 실패. 서버에 설정된 Jira 이메일 또는 API 토큰이 올바른지, 해당 계정이 프로젝트에 접근할 권한이 있는지 확인하세요.';
             } else if (response.status === 404) {
-                 userMessage += `[진단] '404 Not Found'는 다음을 의미할 수 있습니다:\n1. next.config.ts의 프록시 주소(${instanceUrl})가 정확하지 않음.\n2. VPN에 연결되지 않아 서버를 찾을 수 없음.\n3. Jira 서버 내에서 해당 API 경로를 찾을 수 없음. (경로 확인 필요)`;
+                 userMessage += `[진단] '404 Not Found'는 다음을 의미할 수 있습니다:\n1. next.config.ts의 프록시 주소가 정확하지 않음.\n2. VPN에 연결되지 않아 서버를 찾을 수 없음.\n3. Jira 서버 내에서 해당 API 경로를 찾을 수 없음. (경로 확인 필요)`;
             } else {
                  userMessage += '프로젝트 키가 올바른지, 또는 서버에 다른 문제가 있는지 확인해주세요.';
             }
@@ -85,7 +82,6 @@ export async function fetchJiraIssues(options: {
         const data = await response.json();
         
         if (!data.issues) {
-            // 응답은 성공했지만 이슈 데이터가 없는 경우 (예: 권한은 있으나 프로젝트 접근 불가)
              throw new Error('Jira 서버에서 이슈를 찾을 수 없습니다. 프로젝트 키가 정확하거나, 해당 프로젝트에 접근할 권한이 있는지 확인해주세요.');
         }
 
@@ -117,7 +113,6 @@ export async function fetchJiraIssues(options: {
             throw new Error(`네트워크 오류: Jira 서버(${instanceUrl})에 연결할 수 없습니다. next.config.ts의 주소가 정확한지, VPN 연결 상태를 확인해주세요.`);
         }
         if (error instanceof Error) {
-            // 이미 위에서 처리된 커스텀 에러를 다시 던집니다.
             throw error;
         }
         throw new Error('알 수 없는 오류로 Jira 서버에 연결하는 중 문제가 발생했습니다.');

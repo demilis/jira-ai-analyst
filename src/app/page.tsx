@@ -26,38 +26,15 @@ import { PieChart, Pie, Cell, Tooltip } from "recharts";
 
 
 export default function Home() {
-  const [jiraInstanceUrl, setJiraInstanceUrl] = useState("");
-  const [jiraEmail, setJiraEmail] = useState("");
-  const [jiraToken, setJiraToken] = useState("");
-  const [jiraProjectKey, setJiraProjectKey] = useState("");
-  
-  const [analysisPoint, setAnalysisPoint] = useState(""); 
+  const [analysisPoint, setAnalysisPoint] = useState("");
   const [inputValue, setInputValue] = useState(analysisPoint);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [jiraProjectKey, setJiraProjectKey] = useState("");
 
   const [report, setReport] = useState<JiraReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const savedUrl = localStorage.getItem('jiraInstanceUrl');
-    const savedEmail = localStorage.getItem('jiraEmail');
-    const savedToken = localStorage.getItem('jiraToken');
-    const savedProjectKey = localStorage.getItem('jiraProjectKey');
-
-    if (savedUrl) setJiraInstanceUrl(savedUrl);
-    if (savedEmail) setJiraEmail(savedEmail);
-    if (savedToken) setJiraToken(savedToken);
-    if (savedProjectKey) setJiraProjectKey(savedProjectKey);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('jiraInstanceUrl', jiraInstanceUrl);
-    localStorage.setItem('jiraEmail', jiraEmail);
-    localStorage.setItem('jiraToken', jiraToken);
-    localStorage.setItem('jiraProjectKey', jiraProjectKey);
-  }, [jiraInstanceUrl, jiraEmail, jiraToken, jiraProjectKey]);
 
   useEffect(() => {
     // When a selection is made, update the input field's value
@@ -88,9 +65,6 @@ export default function Home() {
 
     try {
         const issueDataArray = await fetchJiraIssues({
-            instanceUrl: jiraInstanceUrl,
-            email: jiraEmail,
-            apiToken: jiraToken,
             projectKey: jiraProjectKey,
         });
 
@@ -98,14 +72,14 @@ export default function Home() {
             toast({
                 variant: 'destructive',
                 title: 'Jira에서 이슈를 가져오지 못했습니다.',
-                description: '프로젝트 키가 올바른지, 해당 프로젝트에 접근 권한이 있는지 확인해주세요.',
+                description: '프로젝트 키가 올바른지, 또는 서버에 설정된 인증 정보로 해당 프로젝트에 접근 가능한지 확인해주세요.',
             });
             setIsLoading(false);
             return;
         }
 
         stringifiedData = JSON.stringify(issueDataArray);
-      
+
         const finalAnalysisPoint = analysisPoint || inputValue;
         const generatedReport = await generateJiraReport({ issuesData: stringifiedData, analysisPoint: finalAnalysisPoint });
 
@@ -176,51 +150,23 @@ export default function Home() {
               <CardDescription>Jira API를 통해 실시간 데이터를 분석하고 AI 요약 리포트를 받아보세요.</CardDescription>
             </div>
             <div className="text-right text-xs text-muted-foreground pt-1 whitespace-nowrap">
-              <p>Ver. 1.4.0, Jul 2025</p>
+              <p>Ver. 2.0.0, Jul 2025</p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-            <div className="space-y-4">
-                <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                        Jira API 토큰을 사용하여 실시간 데이터를 분석합니다. 입력된 정보는 브라우저에 저장되어 다음 방문 시 자동으로 불러옵니다.
-                    </AlertDescription>
-                </Alert>
-                <div className="space-y-2">
-                    <Label htmlFor="jira-instance-url">Jira 인스턴스 URL</Label>
-                    <Input
-                        id="jira-instance-url"
-                        placeholder="https://your-company.atlassian.net"
-                        value={jiraInstanceUrl}
-                        onChange={(e) => setJiraInstanceUrl(e.target.value)}
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="jira-email">Jira 이메일 (토큰 발급 계정)</Label>
-                    <Input
-                        id="jira-email"
-                        placeholder="user@example.com"
-                        value={jiraEmail}
-                        onChange={(e) => setJiraEmail(e.target.value)}
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="jira-token">Jira API 토큰</Label>
-                    <Input
-                        id="jira-token"
-                        type="password"
-                        placeholder="API 토큰을 입력하세요"
-                        value={jiraToken}
-                        onChange={(e) => setJiraToken(e.target.value)}
-                    />
-                </div>
+            <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                    이 앱은 서버에 미리 설정된 인증 정보를 사용하여 Jira 데이터를 가져옵니다. 분석할 프로젝트 키를 입력하고 리포트 생성을 시작하세요.
+                </AlertDescription>
+            </Alert>
+            <div className="space-y-4 mt-6">
                  <div className="space-y-2">
                     <Label htmlFor="jira-project-key">Jira 프로젝트 키</Label>
                     <Input
                         id="jira-project-key"
-                        placeholder="예: PROJ"
+                        placeholder="분석할 프로젝트의 키를 입력하세요 (예: PROJ)"
                         value={jiraProjectKey}
                         onChange={(e) => setJiraProjectKey(e.target.value)}
                     />
@@ -292,8 +238,7 @@ export default function Home() {
           <Button
             onClick={handleGenerateReport}
             disabled={
-                isLoading || 
-                !jiraInstanceUrl || !jiraEmail || !jiraToken || !jiraProjectKey
+                isLoading || !jiraProjectKey
             }
             className="w-full"
           >
