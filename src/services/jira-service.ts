@@ -12,7 +12,7 @@
  */
 
 export async function fetchJiraIssues(options: {
-    instanceUrl: string; // This is now used for documentation/display purposes, not the actual fetch URL
+    instanceUrl: string; 
     email: string;
     apiToken: string;
     projectKey: string;
@@ -22,10 +22,12 @@ export async function fetchJiraIssues(options: {
     if (!instanceUrl || !email || !apiToken || !projectKey) {
         throw new Error('Jira 인스턴스 URL, 이메일, API 토큰, 프로젝트 키를 모두 입력해주세요.');
     }
-
-    // In local development, we always use the proxy.
-    // The actual instanceUrl is configured in next.config.js for the proxy.
-    const apiUrl = `/api/jira/rest/api/2/search`;
+    
+    // Construct the absolute URL for the fetch request.
+    // Server-side fetch requires an absolute URL.
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const apiUrl = new URL('/api/jira/rest/api/2/search', baseUrl).toString();
+    
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
     const jql = `project = "${projectKey.toUpperCase()}" ORDER BY created DESC`;
     
@@ -40,7 +42,7 @@ export async function fetchJiraIssues(options: {
             body: JSON.stringify({
                 jql: jql,
                 startAt: 0,
-                maxResults: 100, // Fetch up to 100 recent issues
+                maxResults: 100, 
                 fields: ["summary", "status", "assignee", "created", "resolutiondate"]
             }),
         });
@@ -48,8 +50,7 @@ export async function fetchJiraIssues(options: {
         if (!response.ok) {
             const errorBody = await response.text();
             console.error(`Jira API Error: ${errorBody}`);
-            // Provide a more specific error message for proxy-related issues.
-            if (response.status === 404 && apiUrl.startsWith('/api/jira')) {
+            if (response.status === 404 && apiUrl.includes('/api/jira')) {
                  throw new Error(`Jira API 요청 실패 (404 Not Found): Next.js 프록시 설정이 Jira 서버(${instanceUrl})를 찾지 못했습니다. next.config.ts의 프록시 URL이 올바른지, VPN에 연결되어 있는지 확인해주세요.`);
             }
             throw new Error(`Jira API 요청 실패: ${response.status} ${response.statusText}. 프로젝트 키, 인증 정보가 올바른지 확인해주세요.`);

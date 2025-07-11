@@ -100,11 +100,15 @@ git clone https://github.com/user/jira-ai-analyst.git
     ```bash
     npm install
     ```
-4.  **API 키 설정:**
+4.  **환경 변수 파일 설정:**
     *   프로젝트 최상위 폴더에 `.env.local` 파일을 만드세요.
-    *   파일을 열고, 발급받은 Google AI API 키를 아래 형식으로 추가 후 저장하세요.
+    *   파일을 열고, 발급받은 Google AI API 키를 아래 형식으로 추가 후 저장하세요. 로컬 서버 주소도 함께 추가합니다.
     ```
+    # Google AI API 키
     GOOGLE_API_KEY=여기에_당신의_API_키를_붙여넣으세요
+
+    # 로컬 개발 서버 주소
+    NEXT_PUBLIC_APP_URL=http://localhost:3000
     ```
 5.  **앱 실행:**
     ```bash
