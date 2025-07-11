@@ -132,7 +132,7 @@ Next.js의 프록시 기능은 우리 앱을 위한 '똑똑한 비서'처럼 작
         source: '/api/jira/:path*',
         // 중요: 아래 주소를 당신의 실제 Jira 서버 주소로 변경하세요!
         // 예시 1: https://my-jira.my-company.com/jira/:path*
-        // 예시 2: http://192.168.1.100/jira/:path*
+        // 예시 2: http://192.168.1.100/issue/:path*
         destination: 'http://jira.lge.com/issue/:path*', 
       },
     ]
@@ -168,7 +168,7 @@ npm run dev
             -   예시: `http://jira.mycompany.com/jira/browse/ABC-123`
         4.  여기서 `.../browse/...` **앞부분까지의 주소**(`http://jira.mycompany.com/jira`)가 바로 당신의 `destination`에 들어가야 할 **정확한 기본 주소**입니다.
         5.  `next.config.ts`의 `destination` 값을 찾은 주소 뒤에 `:path*`를 붙여 수정합니다.
-            -   `destination: 'http://jira.mycompany.com/jira/:path*'`
+            -   `destination: 'http://mycompany.com/jira/:path*'`
 
 -   **`401 Unauthorized` 또는 `403 Forbidden` (인증 실패)**:
     -   **원인:** Jira 서버에 연결은 성공했지만, 인증 정보가 틀렸습니다. **이것은 비밀번호가 아닌 API 토큰 문제입니다.**
@@ -180,7 +180,7 @@ npm run dev
 
 ### **401 인증 실패: 최종 점검 가이드**
 
-`401 Unauthorized` 오류가 계속 발생한다면, 다음 단계를 순서대로 꼼꼼히 따라해 주세요. 이 문제는 코드 문제가 아니라, 100% 앱에 입력된 정보의 문제입니다.
+`401 Unauthorized` 오류가 계속 발생한다면, 다음 단계를 순서대로 꼼꼼히 따라해 주세요. 이 문제는 코드 문제가 아니라, **100% 앱에 입력된 정보의 문제**입니다.
 
 #### **1단계: 새로운 API 토큰 발급 (가장 확실한 해결책)**
 
