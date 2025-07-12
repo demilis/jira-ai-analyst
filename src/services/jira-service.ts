@@ -29,6 +29,8 @@ export async function fetchJiraIssues(options: {
     
     const finalApiUrl = `${instanceUrl.replace(/\/$/, '')}/rest/api/2/search`;
     
+    // 1. 이메일과 API 토큰을 콜론으로 합친 후, Base64로 인코딩합니다.
+    // 이것이 HTTP Basic Authentication의 표준 방식입니다.
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
     
     // Base JQL query for projects
@@ -52,6 +54,8 @@ export async function fetchJiraIssues(options: {
         const response = await fetch(finalApiUrl, {
             method: 'POST',
             headers: {
+                // 2. HTTP 요청 헤더의 'Authorization' 필드에 "Basic " 접두사와 함께
+                //    인코딩된 인증 정보를 담아 보냅니다.
                 'Authorization': `Basic ${credentials}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
@@ -95,6 +99,7 @@ export async function fetchJiraIssues(options: {
             issue.fields.summary || '',
             issue.fields.assignee ? issue.fields.assignee.displayName : '담당자 없음',
             issue.fields.status ? issue.fields.status.name : '상태 없음',
+            // 'components' 필드가 없는 경우를 대비한 안전 장치
             issue.fields.components && issue.fields.components.length > 0
                 ? issue.fields.components.map((c: any) => c.name).join(', ')
                 : '컴포넌트 없음',
