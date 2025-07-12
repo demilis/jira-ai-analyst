@@ -187,11 +187,11 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="space-y-2">
-                        <Label htmlFor="email">Jira 계정 이메일</Label>
+                        <Label htmlFor="email">Jira 계정 이메일 또는 사용자 이름</Label>
                         <Input
                             id="email"
-                            type="email"
-                            placeholder="your-email@example.com"
+                            type="text"
+                            placeholder="your-email@example.com 또는 username"
                             value={jiraAuth.email}
                             onChange={handleAuthChange}
                         />
@@ -390,5 +390,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
