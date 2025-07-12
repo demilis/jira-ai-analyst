@@ -28,6 +28,7 @@ export async function fetchJiraIssues(options: {
         throw new Error('Jira 프로젝트 키를 입력해주세요.');
     }
     
+    // 사용자가 입력한 URL의 마지막 '/'를 제거하고, Jira API의 정식 경로를 붙여 최종 URL을 생성합니다.
     const finalApiUrl = `${instanceUrl.replace(/\/$/, '')}/rest/api/2/search`;
     
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
@@ -42,10 +43,11 @@ export async function fetchJiraIssues(options: {
 
     jql += ' ORDER BY created DESC';
 
-    console.log(`\n--- [Jira Service] API 요청 전송 ---`);
-    console.log(`- 요청 URL: ${finalApiUrl}`);
-    console.log(`- JQL: ${jql}`);
-    console.log(`------------------------------------\n`);
+    // 사용자가 요청한 디버깅 로그: 최종 조합된 URL과 JQL을 터미널에 출력합니다.
+    console.log(`\n--- [Jira Service] 최종 API 요청 정보 ---`);
+    console.log(`[요청 URL]: ${finalApiUrl}`);
+    console.log(`[JQL 쿼리]: ${jql}`);
+    console.log(`--------------------------------------\n`);
 
     try {
         const response = await fetch(finalApiUrl, {
