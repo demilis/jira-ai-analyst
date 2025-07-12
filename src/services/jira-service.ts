@@ -28,16 +28,13 @@ export async function fetchJiraIssues(options: {
         throw new Error('Jira 프로젝트 키를 입력해주세요.');
     }
     
-    // 사용자가 입력한 URL의 마지막에 슬래시(/)가 있을 경우 제거하고, API 경로를 추가합니다.
     const finalApiUrl = `${instanceUrl.replace(/\/$/, '')}/rest/api/2/search`;
     
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
     
-    // 쉼표로 구분된 프로젝트 키를 배열로 변환하고 JQL의 'IN' 절에 맞게 포맷팅합니다.
     const projectKeys = projectKey.split(',').map(key => `"${key.trim().toUpperCase()}"`).join(',');
     let jql = `project IN (${projectKeys})`;
 
-    // 컴포넌트 값이 있으면 JQL에 AND 조건 추가
     if (components && components.trim()) {
         const componentNames = components.split(',').map(c => `"${c.trim()}"`).join(',');
         jql += ` AND component IN (${componentNames})`;
@@ -74,9 +71,9 @@ export async function fetchJiraIssues(options: {
             let userMessage = `Jira API 요청 실패 (상태 코드: ${response.status}).\n`;
 
             if (response.status === 400 && errorBody.includes("does not exist for the field")) {
-                 userMessage += `잘못된 프로젝트 키 또는 컴포넌트 이름이 포함되어 있습니다. 입력 값을 확인해주세요.`;
+                 userMessage += `[진단] '400 잘못된 요청' 오류가 발생했습니다. 입력하신 프로젝트 키 또는 컴포넌트 이름 중 존재하지 않는 값이 포함되어 있습니다. 오타가 없는지 확인해주세요.`;
             } else if (response.status === 401 || response.status === 403) {
-                 userMessage += '인증 실패. Jira 이메일 또는 API 토큰이 올바른지, 해당 계정이 프로젝트에 접근할 권한이 있는지 확인하세요.';
+                 userMessage += '[진단] \'401 인증 실패\' 오류입니다. Jira 이메일 또는 API 토큰 값이 정확하지 않습니다. Jira 사이트에서 새 API 토큰을 발급받아 공백 없이 붙여넣어 보세요.';
             } else if (response.status === 404) {
                  userMessage += `[진단] '404 Not Found' 오류가 발생했습니다. 입력하신 Jira 주소('${instanceUrl}')가 정확한지, 특히 주소 끝에 '/issue'와 같은 경로(Context Path)가 포함되어 있는지 반드시 확인해보세요.`;
             } else {
@@ -122,5 +119,3 @@ export async function fetchJiraIssues(options: {
         throw new Error('알 수 없는 오류로 Jira 서버에 연결하는 중 문제가 발생했습니다.');
     }
 }
-
-    
