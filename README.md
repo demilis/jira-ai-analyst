@@ -93,7 +93,7 @@ npm install
 ### 4단계: 환경 변수 설정 (가장 중요!)
 로컬 환경에서 앱을 실행하려면, Jira 접속 정보와 Google AI API 키를 **환경 변수 파일**에 설정해야 합니다.
 
-1.  프로젝트의 최상위 폴더에 `.env.local` 이라는 파일을 새로 만드세요.
+1.  프로젝트의 최상위 폴더(루트)에 `.env.local` 이라는 파일을 새로 만드세요.
 2.  아래 내용을 복사하여 파일에 붙여넣고, 각 항목에 맞는 실제 값으로 변경하세요.
 
     ```
@@ -113,6 +113,9 @@ npm install
     NEXT_PUBLIC_APP_URL="http://localhost:3000"
     ```
     **중요:** `.env.local` 파일은 민감한 정보를 담고 있으므로, Git에 절대 업로드하면 안 됩니다. (`.gitignore` 파일에 이미 등록되어 있습니다.)
+
+### 5단계: 환경 변수 적용을 위해 서버 재시작
+`.env.local` 파일을 수정했다면, 반드시 실행 중인 개발 서버를 `Ctrl + C`로 중지한 후 `npm run dev`로 다시 시작해야 변경된 내용이 적용됩니다.
 
 ## 로컬에서 실행하기 (내부망 Jira 접속용)
 
@@ -166,9 +169,8 @@ npm run dev
         2.  `next.config.ts`의 `destination` 주소에 **오타가 없는지** 다시 한번 꼼꼼히 확인하세요.
 
 -   **`404 Not Found`**:
-    -   **원인:** 서버에 연결은 되었지만, API 주소(`.../rest/api/2/search`)를 모르는 경우. **Jira 서버의 기본 경로(Context Path)가 빠졌을 가능성이 매우 높습니다.**
-    -   **해결책:**
-        1.  `next.config.ts`의 `destination` 값이 정확한지 다시 확인하세요. (예: `http://mycompany.com/jira/:path*`)
+    -   **원인:** 서버에 연결은 되었지만, API 주소(`.../rest/api/2/search`)를 모르는 경우. **Jira 서버의 기본 경로(Context Path, 예: `/issue`)가 빠졌을 가능성이 매우 높습니다.**
+    -   **해결책:** `next.config.ts`의 `destination` 값이 `http://jira.lge.com/issue/:path*` 와 같이 정확한지 다시 확인하세요.
 
 -   **`401 Unauthorized` 또는 `403 Forbidden` (인증 실패)**:
     -   **원인:** 서버에 연결은 성공했지만, 인증 정보가 틀렸습니다.
