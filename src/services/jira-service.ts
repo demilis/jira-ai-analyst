@@ -44,22 +44,25 @@ export async function fetchJiraIssues(options: {
     }
 
     jql += ` ORDER BY created DESC`;
+
+    const headers = {
+        // 2. HTTP 요청 헤더의 'Authorization' 필드에 "Basic " 접두사와 함께
+        //    인코딩된 인증 정보를 담아 보냅니다.
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    };
     
     console.log(`\n--- [Jira Service] 최종 API 요청 정보 ---`);
     console.log(`[요청 URL]: ${finalApiUrl}`);
     console.log(`[JQL 쿼리]: ${jql}`);
+    console.log(`[요청 헤더]:`, JSON.stringify(headers, null, 2));
     console.log(`--------------------------------------\n`);
 
     try {
         const response = await fetch(finalApiUrl, {
             method: 'POST',
-            headers: {
-                // 2. HTTP 요청 헤더의 'Authorization' 필드에 "Basic " 접두사와 함께
-                //    인코딩된 인증 정보를 담아 보냅니다.
-                'Authorization': `Basic ${credentials}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
+            headers: headers,
             body: JSON.stringify({
                 jql: jql,
                 startAt: 0,
