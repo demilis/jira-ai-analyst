@@ -91,15 +91,21 @@ export async function fetchJiraIssues(options: {
         }
 
         const header = ["Issue Key", "Summary", "Assignee", "Status", "Components", "Created", "Resolved"];
-        const rows = data.issues.map((issue: any) => [
-            issue.key,
-            issue.fields.summary || '',
-            issue.fields.assignee ? issue.fields.assignee.displayName : '담당자 없음',
-            issue.fields.status ? issue.fields.status.name : '상태 없음',
-            issue.fields.components.map((c: any) => c.name).join(', ') || '컴포넌트 없음',
-            issue.fields.created ? new Date(issue.fields.created).toISOString().split('T')[0] : '',
-            issue.fields.resolutiondate ? new Date(issue.fields.resolutiondate).toISOString().split('T')[0] : ''
-        ]);
+        const rows = data.issues.map((issue: any) => {
+            const issueComponents = (issue.fields.components && Array.isArray(issue.fields.components))
+                ? issue.fields.components.map((c: any) => c.name).join(', ')
+                : '컴포넌트 없음';
+
+            return [
+                issue.key,
+                issue.fields.summary || '',
+                issue.fields.assignee ? issue.fields.assignee.displayName : '담당자 없음',
+                issue.fields.status ? issue.fields.status.name : '상태 없음',
+                issueComponents,
+                issue.fields.created ? new Date(issue.fields.created).toISOString().split('T')[0] : '',
+                issue.fields.resolutiondate ? new Date(issue.fields.resolutiondate).toISOString().split('T')[0] : ''
+            ];
+        });
 
         if (rows.length === 0) {
              return [header]; // 이슈가 없는 경우 헤더만 반환
