@@ -6,8 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Dice Roller Duo',
-  description: 'Simulate rolling two dice.',
+  title: 'Jira AI Analyst',
+  description: 'Analyze Jira issues with AI.',
 };
 
 export default function RootLayout({
