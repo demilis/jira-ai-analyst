@@ -150,7 +150,7 @@ export default function Home() {
               <CardDescription>Jira API를 통해 실시간 데이터를 분석하고 AI 요약 리포트를 받아보세요.</CardDescription>
             </div>
             <div className="text-right text-xs text-muted-foreground pt-1 whitespace-nowrap">
-              <p>Ver. 2.0.0, Jul 2025</p>
+              <p>Ver. 2.0.1, Jul 2025</p>
             </div>
           </div>
         </CardHeader>
@@ -163,10 +163,10 @@ export default function Home() {
             </Alert>
             <div className="space-y-4 mt-6">
                  <div className="space-y-2">
-                    <Label htmlFor="jira-project-key">Jira 프로젝트 키</Label>
+                    <Label htmlFor="jira-project-key">Jira 프로젝트 키 (여러 개는 쉼표로 구분)</Label>
                     <Input
                         id="jira-project-key"
-                        placeholder="분석할 프로젝트의 키를 입력하세요 (예: PROJ)"
+                        placeholder="예: PROJ, ANOTHER, TEST"
                         value={jiraProjectKey}
                         onChange={(e) => setJiraProjectKey(e.target.value)}
                     />

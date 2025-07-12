@@ -45,7 +45,12 @@ export async function fetchJiraIssues(options: {
     const apiUrl = new URL('/api/jira/rest/api/2/search', baseUrl).toString();
     
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
-    const jql = `project = "${projectKey.toUpperCase()}" ORDER BY created DESC`;
+    
+    // 쉼표로 구분된 프로젝트 키를 배열로 변환하고 JQL의 'IN' 절에 맞게 포맷팅합니다.
+    const projectKeys = projectKey.split(',').map(key => `"${key.trim().toUpperCase()}"`).join(',');
+    const jql = `project IN (${projectKeys}) ORDER BY created DESC`;
+
+    console.log(`Executing JQL: ${jql}`);
     
     try {
         const response = await fetch(apiUrl, {
