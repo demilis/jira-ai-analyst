@@ -11,7 +11,6 @@
  * 
  * - fetchJiraIssues - Constructs and sends the request to the Jira search endpoint via the proxy.
  */
-import 'dotenv/config'; // Force load .env.local
 
 export async function fetchJiraIssues(options: {
     projectKey: string;
@@ -24,9 +23,9 @@ export async function fetchJiraIssues(options: {
 
     // --- 서버 측 환경 변수 검증을 위한 로그 ---
     console.log("\n--- [Jira Service] Loading credentials from server environment ---");
-    console.log(`- Instance URL: ${instanceUrl ? `Loaded (Value: ${instanceUrl})` : 'Not Found!'}`);
-    console.log(`- Email: ${email ? `Loaded (Value: ${email})` : 'Not Found!'}`);
-    console.log(`- API Token: ${apiToken ? `Loaded (Token received)` : 'Not Found!'}`);
+    console.log(`- Instance URL from .env.local: ${instanceUrl ? 'Loaded' : 'Not Found!'}`);
+    console.log(`- Email from .env.local: ${email ? 'Loaded' : 'Not Found!'}`);
+    console.log(`- API Token from .env.local: ${apiToken ? 'Loaded' : 'Not Found!'}`);
     console.log(`- Project Key from UI: ${projectKey}`);
     console.log("-----------------------------------------------------\n");
     // --- 로그 끝 ---
@@ -73,7 +72,7 @@ export async function fetchJiraIssues(options: {
             if (response.status === 401 || response.status === 403) {
                  userMessage += '인증 실패. 서버에 설정된 Jira 이메일 또는 API 토큰이 올바른지, 해당 계정이 프로젝트에 접근할 권한이 있는지 확인하세요.';
             } else if (response.status === 404) {
-                 userMessage += `[진단] '404 Not Found'는 다음을 의미할 수 있습니다:\n1. next.config.ts의 프록시 주소가 정확하지 않음.\n2. VPN에 연결되지 않아 서버를 찾을 수 없음.\n3. Jira 서버 내에서 해당 API 경로를 찾을 수 없음. (경로 확인 필요)`;
+                 userMessage += `[진단] '404 Not Found'는 다음을 의미할 수 있습니다:\n1. next.config.ts의 프록시 주소(destination)가 정확하지 않음. (특히 '/issue' 같은 경로가 빠졌는지 확인!)\n2. VPN에 연결되지 않아 서버를 찾을 수 없음.\n3. Jira 서버 내에서 해당 API 경로를 찾을 수 없음.`;
             } else {
                  userMessage += '프로젝트 키가 올바른지, 또는 서버에 다른 문제가 있는지 확인해주세요.';
             }
