@@ -209,7 +209,7 @@ export default function Home() {
                         <Label htmlFor="jiraProjectKey">Jira 프로젝트 키</Label>
                         <Input
                             id="jiraProjectKey"
-                            placeholder="분석할 프로젝트 키 (예: PROJ, TEST)"
+                            placeholder="HMCCCIC, HKMCCCICEX"
                             value={jiraProjectKey}
                             onChange={(e) => setJiraProjectKey(e.target.value)}
                         />
@@ -221,7 +221,7 @@ export default function Home() {
                         <Label htmlFor="jiraComponent">컴포넌트 (선택 사항)</Label>
                         <Input
                             id="jiraComponent"
-                            placeholder="특정 컴포넌트 이름 (예: UI, Backend)"
+                            placeholder="AVN - Vibe, AVN - Spotify"
                             value={jiraComponent}
                             onChange={(e) => setJiraComponent(e.target.value)}
                         />
@@ -395,3 +395,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
