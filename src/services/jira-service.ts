@@ -2,14 +2,15 @@
 'use server';
 
 /**
- * @fileOverview A service to fetch data from the Jira API.
- * This file contains the function responsible for making the actual network request
- * to the Jira REST API to retrieve issue data.
+ * @fileOverview Jira API에서 데이터를 가져오는 서비스입니다.
+ * 이 파일은 Jira REST API에 실제 네트워크 요청을 보내 이슈 데이터를 검색하는 함수를 포함합니다.
  *
- * It uses a proxy in the development environment to bypass CORS issues
- * and to allow connections to internal Jira instances.
+ * --- process.env는 어디서 오나요? ---
+ * `process.env`는 Node.js 환경의 전역 객체입니다. Next.js 서버는 시작될 때
+ * 프로젝트 루트에 있는 `.env.local` 파일의 내용을 자동으로 읽어 `process.env` 객체에 채워줍니다.
+ * 따라서 이 파일('use server'로 실행됨)은 해당 값들에 접근할 수 있습니다.
  * 
- * - fetchJiraIssues - Constructs and sends the request to the Jira search endpoint via the proxy.
+ * - fetchJiraIssues - Jira 검색 엔드포인트에 프록시를 통해 요청을 구성하고 보냅니다.
  */
 
 export async function fetchJiraIssues(options: {
@@ -22,11 +23,12 @@ export async function fetchJiraIssues(options: {
     const instanceUrl = process.env.JIRA_INSTANCE_URL;
 
     // --- 서버 측 환경 변수 검증을 위한 최종 디버깅 로그 ---
-    console.log("\n--- [Jira Service] Loading credentials from server environment ---");
-    console.log(`- JIRA_INSTANCE_URL from .env.local: ${instanceUrl ? 'Loaded' : '!!! NOT FOUND !!!'}`);
-    console.log(`- JIRA_EMAIL from .env.local: ${email ? 'Loaded' : '!!! NOT FOUND !!!'}`);
-    console.log(`- JIRA_API_TOKEN from .env.local: ${apiToken ? 'Loaded' : '!!! NOT FOUND !!!'}`);
-    console.log(`- Project Key from UI: ${projectKey}`);
+    // 이 로그는 서버가 .env.local 파일을 성공적으로 읽었는지 확인하는 데 매우 중요합니다.
+    console.log("\n--- [Jira Service] 서버 메모리에 로드된 환경 변수 확인 ---");
+    console.log(`- JIRA_INSTANCE_URL: ${instanceUrl ? '로드됨' : '!!! 로드 실패 (undefined) !!!'}`);
+    console.log(`- JIRA_EMAIL: ${email ? '로드됨' : '!!! 로드 실패 (undefined) !!!'}`);
+    console.log(`- JIRA_API_TOKEN: ${apiToken ? '로드됨' : '!!! 로드 실패 (undefined) !!!'}`);
+    console.log(`- UI에서 받은 프로젝트 키: ${projectKey}`);
     console.log("-------------------------------------------------------------\n");
     // --- 로그 끝 ---
 
@@ -38,8 +40,7 @@ export async function fetchJiraIssues(options: {
         throw new Error('Jira 프로젝트 키를 입력해주세요.');
     }
     
-    // Construct the absolute URL for the fetch request.
-    // Server-side fetch requires an absolute URL.
+    // 서버 측 fetch는 절대 URL이 필요합니다.
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const apiUrl = new URL('/api/jira/rest/api/2/search', baseUrl).toString();
     
@@ -65,7 +66,7 @@ export async function fetchJiraIssues(options: {
 
         if (!response.ok) {
             const errorBody = await response.text();
-            console.error(`Jira API Error Response (Status: ${response.status}):`, errorBody);
+            console.error(`Jira API 에러 응답 (상태 코드: ${response.status}):`, errorBody);
 
             let userMessage = `Jira API 요청 실패 (상태 코드: ${response.status}).\n`;
 
