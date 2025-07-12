@@ -30,6 +30,7 @@ export default function Home() {
   const [inputValue, setInputValue] = useState(analysisPoint);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [jiraProjectKey, setJiraProjectKey] = useState("");
+  const [jiraComponents, setJiraComponents] = useState("");
 
   const [report, setReport] = useState<JiraReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,6 +67,7 @@ export default function Home() {
     try {
         const issueDataArray = await fetchJiraIssues({
             projectKey: jiraProjectKey,
+            components: jiraComponents,
         });
 
         if (issueDataArray.length < 2) { // header + at least one row
@@ -169,6 +171,15 @@ export default function Home() {
                         placeholder="예: PROJ, ANOTHER, TEST"
                         value={jiraProjectKey}
                         onChange={(e) => setJiraProjectKey(e.target.value)}
+                    />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="jira-components">Jira Component/s (선택 사항, 여러 개는 쉼표로 구분)</Label>
+                    <Input
+                        id="jira-components"
+                        placeholder="예: UI, Backend, Database"
+                        value={jiraComponents}
+                        onChange={(e) => setJiraComponents(e.target.value)}
                     />
                 </div>
             </div>

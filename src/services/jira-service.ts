@@ -15,8 +15,9 @@
 
 export async function fetchJiraIssues(options: {
     projectKey: string;
+    components?: string;
 }): Promise<string[][]> {
-    const { projectKey } = options;
+    const { projectKey, components } = options;
 
     const email = process.env.JIRA_EMAIL;
     const apiToken = process.env.JIRA_API_TOKEN;
@@ -29,6 +30,7 @@ export async function fetchJiraIssues(options: {
     console.log(`- JIRA_EMAIL: ${email ? '로드됨' : '!!! 로드 실패 (undefined) !!!'}`);
     console.log(`- JIRA_API_TOKEN: ${apiToken ? '로드됨' : '!!! 로드 실패 (undefined) !!!'}`);
     console.log(`- UI에서 받은 프로젝트 키: ${projectKey}`);
+    console.log(`- UI에서 받은 컴포넌트: ${components}`);
     console.log("-------------------------------------------------------------\n");
     // --- 로그 끝 ---
 
@@ -48,7 +50,16 @@ export async function fetchJiraIssues(options: {
     
     // 쉼표로 구분된 프로젝트 키를 배열로 변환하고 JQL의 'IN' 절에 맞게 포맷팅합니다.
     const projectKeys = projectKey.split(',').map(key => `"${key.trim().toUpperCase()}"`).join(',');
-    const jql = `project IN (${projectKeys}) ORDER BY created DESC`;
+    let jql = `project IN (${projectKeys})`;
+
+    // 컴포넌트 값이 있으면 JQL에 AND 조건 추가
+    if (components && components.trim()) {
+        const componentNames = components.split(',').map(c => `"${c.trim()}"`).join(',');
+        jql += ` AND component IN (${componentNames})`;
+    }
+
+    jql += ' ORDER BY created DESC';
+
 
     console.log(`Executing JQL: ${jql}`);
     
@@ -64,7 +75,7 @@ export async function fetchJiraIssues(options: {
                 jql: jql,
                 startAt: 0,
                 maxResults: 100, 
-                fields: ["summary", "status", "assignee", "created", "resolutiondate"]
+                fields: ["summary", "status", "assignee", "created", "resolutiondate", "components"]
             }),
             signal: AbortSignal.timeout(15000) // 15초
         });
@@ -75,7 +86,9 @@ export async function fetchJiraIssues(options: {
 
             let userMessage = `Jira API 요청 실패 (상태 코드: ${response.status}).\n`;
 
-            if (response.status === 401 || response.status === 403) {
+            if (response.status === 400 && errorBody.includes("The value") && errorBody.includes("does not exist for the field 'component'")) {
+                 userMessage += `잘못된 컴포넌트 이름이 포함되어 있습니다. 입력한 컴포넌트 이름이 Jira에 존재하는지 확인해주세요.`;
+            } else if (response.status === 401 || response.status === 403) {
                  userMessage += '인증 실패. 서버에 설정된 Jira 이메일 또는 API 토큰이 올바른지, 해당 계정이 프로젝트에 접근할 권한이 있는지 확인하세요.';
             } else if (response.status === 404) {
                  userMessage += `[진단] '404 Not Found'는 다음을 의미할 수 있습니다:\n1. next.config.ts의 프록시 주소(destination)가 정확하지 않음. (특히 '/issue' 같은 경로가 빠졌는지 확인!)\n2. VPN에 연결되지 않아 서버를 찾을 수 없음.\n3. Jira 서버 내에서 해당 API 경로를 찾을 수 없음.`;
@@ -91,12 +104,13 @@ export async function fetchJiraIssues(options: {
              throw new Error('Jira 서버에서 이슈를 찾을 수 없습니다. 프로젝트 키가 정확하거나, 해당 프로젝트에 접근할 권한이 있는지 확인해주세요.');
         }
 
-        const header = ["Issue Key", "Summary", "Assignee", "Status", "Created", "Resolved"];
+        const header = ["Issue Key", "Summary", "Assignee", "Status", "Components", "Created", "Resolved"];
         const rows = data.issues.map((issue: any) => [
             issue.key,
             issue.fields.summary || '',
             issue.fields.assignee ? issue.fields.assignee.displayName : '담당자 없음',
             issue.fields.status ? issue.fields.status.name : '상태 없음',
+            issue.fields.components.map((c: any) => c.name).join(', ') || '컴포넌트 없음',
             issue.fields.created ? new Date(issue.fields.created).toISOString().split('T')[0] : '',
             issue.fields.resolutiondate ? new Date(issue.fields.resolutiondate).toISOString().split('T')[0] : ''
         ]);
