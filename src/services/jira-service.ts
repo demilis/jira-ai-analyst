@@ -28,6 +28,7 @@ export async function fetchJiraIssues(options: {
         throw new Error('Jira 프로젝트 키를 입력해주세요.');
     }
     
+    // 사용자가 입력한 URL의 마지막에 슬래시(/)가 있을 경우 제거하고, API 경로를 추가합니다.
     const finalApiUrl = `${instanceUrl.replace(/\/$/, '')}/rest/api/2/search`;
     
     const credentials = Buffer.from(`${email}:${apiToken}`).toString('base64');
@@ -47,8 +48,6 @@ export async function fetchJiraIssues(options: {
     console.log(`\n--- [Jira Service] API 요청 전송 ---`);
     console.log(`- 요청 URL: ${finalApiUrl}`);
     console.log(`- JQL: ${jql}`);
-    console.log(`- 이메일: ${email}`);
-    console.log(`- API 토큰: ${apiToken ? '...입력됨' : '!!! 비어있음 !!!'}`);
     console.log(`------------------------------------\n`);
 
     try {
@@ -79,7 +78,7 @@ export async function fetchJiraIssues(options: {
             } else if (response.status === 401 || response.status === 403) {
                  userMessage += '인증 실패. Jira 이메일 또는 API 토큰이 올바른지, 해당 계정이 프로젝트에 접근할 권한이 있는지 확인하세요.';
             } else if (response.status === 404) {
-                 userMessage += `[진단] '404 Not Found'는 입력하신 Jira 주소('${finalApiUrl}')가 올바르지 않다는 의미입니다. 주소에 '/issue'와 같은 경로가 포함되어 있는지 확인해보세요.`;
+                 userMessage += `[진단] '404 Not Found' 오류가 발생했습니다. 입력하신 Jira 주소('${instanceUrl}')가 정확한지, 특히 주소 끝에 '/issue'와 같은 경로(Context Path)가 포함되어 있는지 반드시 확인해보세요.`;
             } else {
                  userMessage += '프로젝트 키가 올바른지, 또는 네트워크 연결(VPN) 상태를 확인해주세요.';
             }
@@ -123,3 +122,5 @@ export async function fetchJiraIssues(options: {
         throw new Error('알 수 없는 오류로 Jira 서버에 연결하는 중 문제가 발생했습니다.');
     }
 }
+
+    

@@ -164,7 +164,7 @@ export default function Home() {
               <CardDescription>Jira API를 통해 실시간 데이터를 분석하고 AI 요약 리포트를 받아보세요.</CardDescription>
             </div>
             <div className="text-right text-xs text-muted-foreground pt-1 whitespace-nowrap">
-              <p>Ver. 2.1.0, Jul 2025</p>
+              <p>Ver. 2.2.0, Jul 2025</p>
             </div>
           </div>
         </CardHeader>
@@ -172,15 +172,15 @@ export default function Home() {
             <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                    내부망 Jira에 접속하려면 회사 VPN에 반드시 연결해야 합니다. Jira 주소에는 `/issue`와 같은 경로(Context Path)를 포함해야 할 수 있습니다.
+                    내부망 Jira 접속 시 VPN 연결은 필수입니다. 404 오류 발생 시, Jira 주소에 `/issue`와 같은 경로가 포함되었는지 확인하세요.
                 </AlertDescription>
             </Alert>
             <div className="space-y-4 mt-6">
                 <div className="space-y-2">
-                    <Label htmlFor="instanceUrl">Jira 주소</Label>
+                    <Label htmlFor="instanceUrl">Jira 주소 (경로 포함)</Label>
                     <Input
                         id="instanceUrl"
-                        placeholder="예: https://your-domain.atlassian.net 또는 http://jira.company.com/issue"
+                        placeholder="예: http://jira.company.com/issue"
                         value={jiraAuth.instanceUrl}
                         onChange={handleAuthChange}
                     />
@@ -220,7 +220,7 @@ export default function Home() {
                     <Label htmlFor="jiraComponents">Jira Component/s (선택 사항, 여러 개는 쉼표로 구분)</Label>
                     <Input
                         id="jiraComponents"
-                        placeholder="예: AVN - Vibe, AVN - Podbbang"
+                        placeholder="예: AVN - Vibe, AVN - Podbbang, AVN - Spotify"
                         value={jiraComponents}
                         onChange={(e) => setJiraComponents(e.target.value)}
                     />
@@ -390,3 +390,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
