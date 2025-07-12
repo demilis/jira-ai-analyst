@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { generateJiraReport, type JiraReportOutput } from "@/ai/flows/jira-report-flow";
-import { fetchJiraIssues } from "@/services/jira-service";
+import { fetchJiraIssues, type JiraAuth } from "@/services/jira-service";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2, Clipboard, Check, AlertTriangle, ChevronsUpDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -29,6 +29,12 @@ export default function Home() {
   const [analysisPoint, setAnalysisPoint] = useState("");
   const [inputValue, setInputValue] = useState(analysisPoint);
   const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const [jiraAuth, setJiraAuth] = useState<JiraAuth>({
+    instanceUrl: '',
+    email: '',
+    apiToken: '',
+  });
   const [jiraProjectKey, setJiraProjectKey] = useState("");
   const [jiraComponents, setJiraComponents] = useState("");
 
@@ -58,6 +64,11 @@ export default function Home() {
     { value: "이슈많은담당자", label: "이슈많은담당자" },
   ];
 
+  const handleAuthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setJiraAuth(prev => ({...prev, [id]: value }));
+  }
+
   const handleGenerateReport = async () => {
     setIsLoading(true);
     setReport(null);
@@ -66,6 +77,7 @@ export default function Home() {
 
     try {
         const issueDataArray = await fetchJiraIssues({
+            auth: jiraAuth,
             projectKey: jiraProjectKey,
             components: jiraComponents,
         });
@@ -74,7 +86,7 @@ export default function Home() {
             toast({
                 variant: 'destructive',
                 title: 'Jira에서 이슈를 가져오지 못했습니다.',
-                description: '프로젝트 키가 올바른지, 또는 서버에 설정된 인증 정보로 해당 프로젝트에 접근 가능한지 확인해주세요.',
+                description: '입력하신 인증 정보와 프로젝트/컴포넌트 키가 올바른지, 또는 해당 프로젝트에 접근 가능한지 확인해주세요.',
             });
             setIsLoading(false);
             return;
@@ -152,7 +164,7 @@ export default function Home() {
               <CardDescription>Jira API를 통해 실시간 데이터를 분석하고 AI 요약 리포트를 받아보세요.</CardDescription>
             </div>
             <div className="text-right text-xs text-muted-foreground pt-1 whitespace-nowrap">
-              <p>Ver. 2.0.1, Jul 2025</p>
+              <p>Ver. 2.1.0, Jul 2025</p>
             </div>
           </div>
         </CardHeader>
@@ -160,23 +172,54 @@ export default function Home() {
             <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                    이 앱은 서버에 미리 설정된 인증 정보를 사용하여 Jira 데이터를 가져옵니다. 분석할 프로젝트 키를 입력하고 리포트 생성을 시작하세요.
+                    내부망 Jira에 접속하려면 회사 VPN에 반드시 연결해야 합니다. Jira 주소에는 `/issue`와 같은 경로(Context Path)를 포함해야 할 수 있습니다.
                 </AlertDescription>
             </Alert>
             <div className="space-y-4 mt-6">
-                 <div className="space-y-2">
-                    <Label htmlFor="jira-project-key">Jira 프로젝트 키 (여러 개는 쉼표로 구분)</Label>
+                <div className="space-y-2">
+                    <Label htmlFor="instanceUrl">Jira 주소</Label>
                     <Input
-                        id="jira-project-key"
-                        placeholder="예: PROJ, ANOTHER, TEST"
+                        id="instanceUrl"
+                        placeholder="예: https://your-domain.atlassian.net 또는 http://jira.company.com/issue"
+                        value={jiraAuth.instanceUrl}
+                        onChange={handleAuthChange}
+                    />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="email">Jira 계정 이메일</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            placeholder="your-email@example.com"
+                            value={jiraAuth.email}
+                            onChange={handleAuthChange}
+                        />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="apiToken">Jira API 토큰</Label>
+                        <Input
+                            id="apiToken"
+                            type="password"
+                            placeholder="Jira에서 발급받은 API 토큰"
+                            value={jiraAuth.apiToken}
+                            onChange={handleAuthChange}
+                        />
+                    </div>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="jiraProjectKey">Jira 프로젝트 키 (여러 개는 쉼표로 구분)</Label>
+                    <Input
+                        id="jiraProjectKey"
+                        placeholder="예: PROJ, TEST, ANOTHER"
                         value={jiraProjectKey}
                         onChange={(e) => setJiraProjectKey(e.target.value)}
                     />
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="jira-components">Jira Component/s (선택 사항, 여러 개는 쉼표로 구분)</Label>
+                <div className="space-y-2">
+                    <Label htmlFor="jiraComponents">Jira Component/s (선택 사항, 여러 개는 쉼표로 구분)</Label>
                     <Input
-                        id="jira-components"
+                        id="jiraComponents"
                         placeholder="예: UI, Backend, Database"
                         value={jiraComponents}
                         onChange={(e) => setJiraComponents(e.target.value)}
@@ -249,7 +292,7 @@ export default function Home() {
           <Button
             onClick={handleGenerateReport}
             disabled={
-                isLoading || !jiraProjectKey
+                isLoading || !jiraProjectKey || !jiraAuth.instanceUrl || !jiraAuth.email || !jiraAuth.apiToken
             }
             className="w-full"
           >
